@@ -1,0 +1,13 @@
+graphhopper:
+  datareader.file: /data/colombia-latest.osm.pbf
+  graph.location: /data/graph-cache
+  import.osm.ignored_highways: ""
+  profiles:
+    - name: car
+  profiles_ch:
+    - profile: car
+
+server:
+  application_connectors:
+    - type: http
+      port: 8989

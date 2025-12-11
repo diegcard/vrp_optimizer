@@ -1,0 +1,180 @@
+version: '3.8'
+
+services:
+  # ===========================================
+  # PostgreSQL + PostGIS - Base de datos geoespacial
+  # ===========================================
+  postgres:
+    image: postgis/postgis:15-3.3
+    container_name: vrp-postgres
+    environment:
+      POSTGRES_USER: vrp_user
+      POSTGRES_PASSWORD: vrp_password_123
+      POSTGRES_DB: vrp_routes
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - vrp-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vrp_user -d vrp_routes"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===========================================
+  # GraphHopper - Motor de rutas
+  # ===========================================
+  graphhopper:
+    image: israelhikingmap/graphhopper:latest
+    container_name: vrp-graphhopper
+    ports:
+      - "8989:8989"
+    volumes:
+      - ./graphhopper/data:/data
+      - ./graphhopper/config.yml:/config/config.yml
+    environment:
+      JAVA_OPTS: "-Xmx2g -Xms1g"
+    command: ["--config", "/config/config.yml"]
+    networks:
+      - vrp-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8989/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ===========================================
+  # Redis - Cache y colas de tareas
+  # ===========================================
+  redis:
+    image: redis:7-alpine
+    container_name: vrp-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - vrp-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===========================================
+  # Backend FastAPI - Servicio principal con RL
+  # ===========================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: vrp-backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://vrp_user:vrp_password_123@postgres:5432/vrp_routes
+      REDIS_URL: redis://redis:6379
+      GRAPHHOPPER_URL: http://graphhopper:8989
+      ENVIRONMENT: development
+      MODEL_PATH: /app/models
+    volumes:
+      - ./backend:/app
+      - ./models:/app/models
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - vrp-network
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  # ===========================================
+  # Celery Worker - Procesamiento asíncrono de RL
+  # ===========================================
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: vrp-celery-worker
+    environment:
+      DATABASE_URL: postgresql://vrp_user:vrp_password_123@postgres:5432/vrp_routes
+      REDIS_URL: redis://redis:6379
+      GRAPHHOPPER_URL: http://graphhopper:8989
+      MODEL_PATH: /app/models
+    volumes:
+      - ./backend:/app
+      - ./models:/app/models
+    depends_on:
+      - redis
+      - postgres
+      - backend
+    networks:
+      - vrp-network
+    command: celery -A tasks.celery_app worker --loglevel=info
+
+  # ===========================================
+  # Frontend React - Interfaz de usuario
+  # ===========================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: vrp-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_API_URL: http://localhost:8000
+      REACT_APP_GRAPHHOPPER_URL: http://localhost:8989
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - vrp-network
+
+  # ===========================================
+  # Prometheus - Métricas del sistema
+  # ===========================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: vrp-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    networks:
+      - vrp-network
+
+  # ===========================================
+  # Grafana - Visualización de métricas
+  # ===========================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: vrp-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+    depends_on:
+      - prometheus
+    networks:
+      - vrp-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  vrp-network:
+    driver: bridge

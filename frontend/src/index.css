@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #213547;
+  background-color: #f8fafc;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+/* Leaflet customizations */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  border-radius: 8px;
+}
+
+.custom-marker {
+  background: transparent;
+  border: none;
+}
+
+.customer-marker {
+  width: 24px;
+  height: 24px;
+  background-color: #3b82f6;
+  border: 2px solid white;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+.depot-marker {
+  width: 32px;
+  height: 32px;
+  background-color: #10b981;
+  border: 3px solid white;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vehicle-marker {
+  width: 28px;
+  height: 28px;
+  background-color: #f59e0b;
+  border: 2px solid white;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+/* Route colors */
+.route-0 { stroke: #3b82f6; }
+.route-1 { stroke: #10b981; }
+.route-2 { stroke: #f59e0b; }
+.route-3 { stroke: #ef4444; }
+.route-4 { stroke: #8b5cf6; }

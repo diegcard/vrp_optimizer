@@ -1,0 +1,699 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{cite}
+\usepackage{float}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{geometry}
+\geometry{left=3cm,right=3cm,top=3cm,bottom=3cm}
+
+\setlength{\parskip}{1em}
+\setlength{\parindent}{0pt}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+% Estilo de código
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+\lstset{style=mystyle}
+
+\begin{document}
+
+% ------------------- PORTADA -------------------
+\begin{titlepage}
+    \centering
+    
+    \vspace{1cm}
+    {\Large \textbf{Universidad Escuela Colombiana de Ingeniería Julio Garavito}}\\
+    Programa de Ingeniería de Sistemas
+    
+    \vfill
+    
+    {\Large Logística Adaptativa: Un Enfoque con Aprendizaje por Refuerzo para la Optimización de Rutas en Tiempo Real. \par}
+    
+    \vspace{1cm}
+    {\bfseries Propuesta de Proyecto Transversal \par}
+    
+    \vspace{1.5cm}
+    \textbf{Autores:}\\
+    Diego Alexander Cárdenas Beltrán \\
+    Alison Geraldine Valderrama Munar
+    
+    \vfill
+    Bogotá, Colombia \\
+    Octubre 2025
+\end{titlepage}
+
+% ------------------- RESUMEN -------------------
+\begin{abstract}
+La logística de última milla representa el 53\% del costo total de envío para empresas de comercio electrónico y distribución urbana \cite{lastmile2020}. Este proyecto propone el desarrollo de un sistema inteligente basado en la nube que utiliza aprendizaje por refuerzo para optimizar rutas de entrega en tiempo real. La solución integra datos de tráfico, clima y demanda, utilizando un modelo de aprendizaje automático para tomar decisiones adaptativas \cite{mnih2015}. El sistema se basa en servicios independientes desplegados en contenedores, garantizando escalabilidad y alta disponibilidad. Se abordan desafíos específicos del contexto colombiano, como la congestión en Bogotá donde los conductores pierden 191 horas anuales en tráfico \cite{inrix2023}. Los resultados esperados incluyen una reducción del 25-30\% en tiempos de entrega y una disminución del 20\% en costos operacionales, contribuyendo directamente a la transformación digital del sector logístico colombiano mediante técnicas avanzadas de inteligencia artificial y arquitectura empresarial.
+\end{abstract}
+
+\section{Introducción}
+
+\subsection{Contexto y Motivación}
+El crecimiento del comercio electrónico en América Latina, con un aumento del 230\% entre 2020 y 2024 \cite{ccce2024}, ha convertido la logística de última milla en un factor crítico para la competitividad empresarial. En Colombia, donde el comercio electrónico mueve más de 39 billones de pesos anuales, las empresas enfrentan desafíos únicos derivados de la complejidad urbana, la infraestructura vial limitada y la alta variabilidad en las condiciones de tráfico \cite{pilog2025}.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.5\linewidth]{Grafico-Blog-Colombia3-1024x620.png}
+    \caption{Índice de aumento de ventas y de transporte para la entrega de pedidos}
+    \label{fig:grafico-colombia}
+\end{figure}
+
+La última milla, definida como el segmento final del proceso de entrega desde el centro de distribución hasta el consumidor final, presenta características que la convierten en el eslabón más complejo y costoso de la cadena de suministro \cite{lastmile2020}.
+
+En Bogotá, la congestión vehicular genera pérdidas significativas, con conductores perdiendo hasta 191 horas anuales en tráfico \cite{inrix2023}. Esto resalta la necesidad de soluciones inteligentes que integren inteligencia artificial para optimizar rutas en tiempo real.
+
+\subsection{Problemática Específica}
+Las empresas de logística en ciudades como Bogotá, con más de 8 millones de habitantes y alta congestión vehicular, enfrentan limitaciones significativas con los sistemas tradicionales de ruteo:
+
+\begin{enumerate}
+    \item \textbf{Planificación estática:} Las rutas se calculan una sola vez al día y no se adaptan a cambios como accidentes o congestión inesperada.
+    \item \textbf{Datos no utilizados:} Aunque existe información en tiempo real de tráfico y clima, no se integra efectivamente en las decisiones de ruteo.
+    \item \textbf{Falta de aprendizaje:} Los sistemas no mejoran con la experiencia de entregas anteriores ni reconocen patrones de demanda.
+    \item \textbf{Limitaciones de escalabilidad:} Los sistemas actuales no pueden manejar el crecimiento en volumen de entregas, especialmente en fechas especiales como Black Friday.
+\end{enumerate}
+
+Estos desafíos se intensifican en Colombia por factores como la topografía urbana compleja y la dependencia de flotas de vehículos diversos \cite{tsomobile}.
+
+\subsection{Objetivo General}
+Diseñar, implementar y validar una arquitectura de solución empresarial basada en servicios independientes y desplegada en la nube que utilice técnicas de aprendizaje por refuerzo para optimizar dinámicamente las rutas de entrega de última milla, mejorando la eficiencia operacional y reduciendo costos en el contexto urbano colombiano.
+
+\subsection{Objetivos Específicos}
+\begin{enumerate}
+    \item \textbf{Investigación y Análisis:}
+    \begin{itemize}
+        \item Analizar técnicas de aprendizaje automático aplicadas a problemas de ruteo dinámico \cite{sutton2018}.
+        \item Evaluar arquitecturas de servicios distribuidos para sistemas de alta demanda en logística \cite{newman2015}.
+        \item Identificar fuentes de datos disponibles para información de tráfico y clima en Bogotá.
+    \end{itemize}
+    
+    \item \textbf{Diseño de la Arquitectura:}
+    \begin{itemize}
+        \item Diseñar una arquitectura de servicios escalable y resistente a fallos.
+        \item Definir interfaces de comunicación entre servicios utilizando tecnologías estándar.
+        \item Especificar el procesamiento de datos en tiempo real.
+    \end{itemize}
+    
+    \item \textbf{Implementación del Modelo de Inteligencia Artificial:}
+    \begin{itemize}
+        \item Desarrollar un entorno de simulación urbana para entrenamiento del sistema de aprendizaje.
+        \item Implementar y entrenar un modelo de aprendizaje automático adaptado al problema de ruteo dinámico \cite{mnih2015}.
+        \item Optimizar el modelo para respuestas rápidas en tiempo real.
+    \end{itemize}
+    
+    \item \textbf{Despliegue y Validación:}
+    \begin{itemize}
+        \item Implementar la solución en infraestructura de nube utilizando contenedores.
+        \item Realizar pruebas de rendimiento con datos sintéticos basados en escenarios bogotanos.
+        \item Validar mejoras en métricas clave: tiempo de entrega, distancia recorrida, y costo operacional.
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Organización del Documento}
+Este documento se organiza de la siguiente manera: La Sección 2 presenta una descripción detallada del problema de optimización de rutas en Bogotá con datos específicos y cuantificables. La Sección 3 introduce los conceptos básicos de aprendizaje por refuerzo y arquitecturas en la nube necesarios para entender la propuesta. La Sección 4 revisa trabajos relacionados en el área y compara diferentes enfoques existentes. La Sección 5 describe nuestra propuesta de solución técnica y arquitectónica. La Sección 6 presenta la metodología de implementación y los criterios de evaluación detallados. Finalmente, la Sección 7 presenta las conclusiones y el trabajo futuro.
+
+\section{Caracterización Detallada del Problema}
+
+\subsection{Datos Cuantitativos del Problema en Bogotá}
+La logística de última milla en Bogotá presenta desafíos específicos que pueden cuantificarse con precisión:
+
+\textbf{Congestión vehicular:} Los conductores en Bogotá pierden 191 horas anuales en tráfico, lo que representa pérdidas económicas de aproximadamente 2.1 millones de pesos por vehículo al año en costos operacionales adicionales \cite{inrix2023}.
+
+\textbf{Ineficiencia en rutas:} Las entregas actuales recorren en promedio 15.3 kilómetros adicionales debido a la falta de optimización en tiempo real, incrementando el consumo de combustible en un 35\%.
+
+\textbf{Restricciones de tiempo:} El 68\% de las entregas en Bogotá tienen ventanas de tiempo menores a 2 horas, y el 45\% de los clientes requieren entregas en el mismo día.
+
+\textbf{Variabilidad del tráfico:} Los tiempos de viaje pueden variar hasta 300\% entre horas pico (7-9 AM, 5-8 PM) y horas valle, haciendo impredecible la planificación estática.
+
+\subsection{Impacto Económico del Problema}
+Las empresas de logística en Colombia reportan impactos económicos significativos:
+
+\begin{itemize}
+    \item El costo de última milla representa el 53\% del costo total de envío, comparado con un promedio mundial del 41\%.
+    \item Las entregas fallidas cuestan en promedio 45.000 pesos por intento adicional.
+    \item La falta de optimización genera sobrecostos del 35\% en combustible y 25\% en tiempo de trabajo.
+    \item El 23\% de las entregas requiere un segundo intento, duplicando costos operacionales.
+\end{itemize}
+
+\subsection{Limitaciones de las Soluciones Actuales}
+Los sistemas tradicionales de ruteo enfrentan limitaciones técnicas importantes:
+
+\textbf{Tiempo de procesamiento:} Los algoritmos exactos tradicionales requieren más de 30 minutos para calcular rutas óptimas para 50 destinos, volviéndose impracticables para operaciones en tiempo real.
+
+\textbf{Falta de adaptabilidad:} Los sistemas actuales no pueden reaccionar a cambios en las condiciones (accidentes, clima) en menos de 1 hora, perdiendo oportunidades de optimización.
+
+\textbf{Limitaciones de escalabilidad:} Los sistemas existentes fallan o tienen rendimiento degradado con más de 100 vehículos operando simultáneamente.
+
+\textbf{Integración de datos limitada:} La mayoría de sistemas no integran datos en tiempo real de múltiples fuentes (tráfico, clima, eventos) de manera efectiva.
+
+\section{Marco Teórico}
+
+\subsection{Aprendizaje por Refuerzo}
+El aprendizaje por refuerzo es una técnica de inteligencia artificial donde un programa (llamado agente) aprende a tomar decisiones óptimas mediante prueba y error, similar a como aprende un ser humano \cite{sutton2018}. Los elementos básicos del sistema son:
+
+\textbf{Estado (S):} La situación actual del sistema, que en nuestro caso incluye la posición de los vehículos, los pedidos pendientes, las condiciones de tráfico y el tiempo disponible.
+
+\textbf{Acción (A):} Las decisiones que puede tomar el agente, como asignar una ruta específica a un vehículo, cambiar el destino de un vehículo en movimiento, o modificar el orden de las entregas.
+
+\textbf{Recompensa (R):} Una señal numérica que indica qué tan buena fue una decisión. En nuestro caso, recompensas positivas por entregas rápidas y exitosas, y negativas por retrasos o entregas fallidas.
+
+\textbf{Política ($\pi$):} La estrategia que usa el agente para elegir acciones basándose en el estado actual del sistema.
+
+\subsection{Deep Q-Learning}
+Deep Q-Learning es una técnica avanzada que combina aprendizaje por refuerzo con redes neuronales para manejar problemas complejos con muchas variables \cite{mnih2015}:
+
+\begin{itemize}
+    \item Aprende una función Q(s,a) que estima la recompensa total esperada al tomar la acción 'a' en el estado 's'.
+    \item Usa experiencia pasada almacenada para mejorar continuamente las decisiones.
+    \item Puede manejar problemas con miles o millones de estados posibles diferentes.
+    \item Se adapta automáticamente a cambios en el entorno sin reprogramación manual.
+\end{itemize}
+
+\subsection{Arquitecturas de Servicios en la Nube}
+Las arquitecturas basadas en microservicios dividen una aplicación grande en servicios pequeños e independientes \cite{newman2015}:
+
+\textbf{Escalabilidad independiente:} Cada servicio puede aumentar su capacidad según su demanda específica, optimizando el uso de recursos.
+
+\textbf{Resistencia a fallos:} Si un servicio falla, los otros pueden seguir funcionando, manteniendo la operación general del sistema.
+
+\textbf{Facilidad de mantenimiento:} Se pueden actualizar, reparar o reemplazar servicios individuales sin afectar el sistema completo.
+
+\textbf{Tecnologías diversas:} Cada servicio puede usar la tecnología más apropiada para su función específica.
+
+\subsection{Problema de Ruteo Vehicular Dinámico (DVRP)}
+El Problema de Ruteo Vehicular Dinámico es una extensión del problema clásico de ruteo que considera cambios durante la ejecución:
+
+\begin{itemize}
+    \item \textbf{Pedidos dinámicos:} Nuevos pedidos que llegan mientras los vehículos ya están en ruta.
+    \item \textbf{Condiciones variables:} Tráfico, clima y otros factores que cambian constantemente.
+    \item \textbf{Reoptimización:} La capacidad de recalcular y ajustar rutas mientras los vehículos están en movimiento.
+    \item \textbf{Restricciones en tiempo real:} Ventanas de tiempo, capacidad de vehículos y disponibilidad de conductores que cambian dinámicamente.
+\end{itemize}
+
+\section{Estado del Arte}
+
+\subsection{Aprendizaje por Refuerzo en Optimización de Rutas Dinámicas}
+El aprendizaje por refuerzo ha emergido como una técnica efectiva para resolver problemas de ruteo vehicular dinámico, especialmente en logística urbana. A diferencia de los métodos tradicionales que requieren conocimiento completo del problema, el aprendizaje por refuerzo puede adaptarse a condiciones cambiantes y aprender de la experiencia.
+
+Nazari et al. (2018) fueron pioneros en aplicar técnicas de aprendizaje profundo al problema de ruteo vehicular, utilizando un modelo basado en mecanismos de atención para aprender políticas de construcción de rutas \cite{nazari2018}. Su enfoque superó a las mejores heurísticas conocidas en instancias de hasta 100 nodos.
+
+En el contexto de ruteo dinámico, Kwon et al. (2021) desarrollaron un sistema que integra aprendizaje por refuerzo para problemas de ruteo con clientes que aparecen estocásticamente durante el día \cite{kwon2021}. Sus experimentos mostraron reducciones de 15-20\% en tiempos de entrega comparado con métodos tradicionales en simulaciones urbanas.
+
+Para aplicaciones específicas de entrega con múltiples modalidades, Agatz et al. (2022) propusieron el uso de aprendizaje por refuerzo combinado con vehículos terrestres y drones para entregas de último kilómetro \cite{agatz2022}, logrando mejoras significativas en eficiencia.
+
+\subsection{Aplicaciones en Logística Urbana}
+Murray y Chu (2015) destacaron el potencial del aprendizaje por refuerzo para manejar la incertidumbre inherente en el tráfico urbano y la demanda variable \cite{murray2015}. Sus estudios demuestran que los métodos adaptativos superan consistentemente a la programación lineal tradicional en entornos dinámicos.
+
+En el contexto colombiano, aunque los estudios son limitados, investigaciones recientes han explorado el uso de técnicas de aprendizaje automático para la predicción de congestión en Bogotá \cite{repositorio2024}, estableciendo bases para la integración con sistemas de optimización de rutas.
+
+\subsection{Arquitecturas Distribuidas en Logística}
+Las arquitecturas basadas en microservicios han demostrado ser ideales para sistemas logísticos que requieren alta disponibilidad y capacidad de manejar picos de demanda variables \cite{newman2015}. Estas arquitecturas permiten procesar flujos de datos en tiempo real (como información GPS y sensores) sin interrupciones del servicio.
+
+Ejemplos exitosos incluyen plataformas como Uber y empresas locales como Rappi, que utilizan arquitecturas de microservicios para optimización de rutas en tiempo real en ciudades como Bogotá \cite{rappi}. Estos sistemas demuestran la viabilidad de integrar múltiples fuentes de datos para toma de decisiones en tiempo real.
+
+\subsection{Comparación con Enfoques Tradicionales}
+Los métodos tradicionales de optimización (programación lineal, algoritmos genéticos, heurísticas de búsqueda) presentan limitaciones significativas en entornos dinámicos:
+
+\begin{itemize}
+    \item Requieren recalculación completa ante cambios menores en las condiciones.
+    \item No pueden aprender de experiencias pasadas para mejorar futuras decisiones.
+    \item Tienen dificultades para integrar múltiples fuentes de datos en tiempo real.
+    \item Su rendimiento se degrada significativamente con el aumento del tamaño del problema.
+\end{itemize}
+
+En contraste, los enfoques basados en aprendizaje por refuerzo pueden adaptarse continuamente y mejorar su rendimiento con el tiempo, manteniendo eficiencia computacional incluso en problemas grandes.
+
+\section{Propuesta de Solución}
+
+\subsection{Diseño Arquitectónico General}
+La arquitectura propuesta es una solución nativa de nube, compuesta por microservicios orquestados que integran aprendizaje por refuerzo para toma de decisiones dinámicas. El diseño sigue principios de escalabilidad horizontal, tolerancia a fallos y procesamiento en tiempo real.
+
+\subsection{Componentes Principales del Sistema}
+
+\textbf{Servicio de Recolección de Datos:} Este componente recopila información en tiempo real de múltiples fuentes mediante APIs estándar: datos de tráfico (Google Maps, Waze), información climática (OpenWeather), y datos de pedidos del sistema de gestión de la empresa.
+
+\textbf{Servicio de Procesamiento y Simulación:} Incluye el entorno de entrenamiento offline del modelo de aprendizaje por refuerzo utilizando simulaciones urbanas basadas en datos históricos de Bogotá. Este componente permite entrenar el modelo sin interferir con las operaciones en vivo.
+
+\textbf{Servicio de Optimización Inteligente:} El núcleo del sistema, donde reside el modelo de Deep Q-Learning entrenado. Este servicio recibe el estado actual del sistema y genera decisiones de ruteo optimizadas en tiempo real con latencia menor a 100 milisegundos.
+
+\textbf{Servicio de Gestión de Flota:} Maneja la asignación de vehículos, comunicación con conductores, y seguimiento de entregas. Se comunica con los otros servicios para recibir instrucciones de ruteo y reportar el estado actual de la operación.
+
+\textbf{Gateway de API y Monitoreo:} Punto de entrada único para todas las comunicaciones externas, incluyendo aplicaciones móviles para conductores y paneles de control administrativos. También incluye herramientas de monitoreo para supervisar el rendimiento del sistema.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=2cm]
+\node[draw, rectangle, minimum width=2.5cm, minimum height=1cm] (datos) at (0,0) {Recolección\\Datos};
+\node[draw, rectangle, minimum width=2.5cm, minimum height=1cm] (ia) at (4,0) {Optimización\\IA};
+\node[draw, rectangle, minimum width=2.5cm, minimum height=1cm] (flota) at (8,0) {Gestión\\Flota};
+\node[draw, rectangle, minimum width=2.5cm, minimum height=1cm] (simulacion) at (2,-2) {Simulación\\Entrenamiento};
+\node[draw, rectangle, minimum width=2.5cm, minimum height=1cm] (gateway) at (6,-2) {API\\Gateway};
+
+\draw[->] (datos) -- (ia);
+\draw[->] (ia) -- (flota);
+\draw[->] (simulacion) -- (ia);
+\draw[->] (gateway) -- (flota);
+\draw[->] (datos) -- (gateway);
+
+\node at (4,-3.5) {\textbf{Infraestructura de Contenedores}};
+\end{tikzpicture}
+\caption{Arquitectura General del Sistema}
+\end{figure}
+
+\subsection{Integración del Modelo de Inteligencia Artificial}
+El modelo de aprendizaje por refuerzo modela el problema de ruteo como un sistema donde:
+
+\textbf{Estado del sistema:} Se representa como un grafo dinámico donde los nodos son ubicaciones de entrega y los bordes tienen pesos que reflejan distancias ajustadas por condiciones de tráfico en tiempo real.
+
+\textbf{Acciones disponibles:} Incluyen asignar pedidos a vehículos específicos, modificar rutas existentes, y reordenar secuencias de entrega basándose en prioridades dinámicas.
+
+\textbf{Función de recompensa:} Se calcula como una combinación ponderada de factores: tiempo de entrega (negativo para penalizar retrasos), distancia recorrida, y cumplimiento de ventanas de tiempo con bonificaciones por entregas tempranas.
+
+El modelo utiliza técnicas de experiencia repetida para estabilidad en el aprendizaje y actualización de parámetros mediante gradientes que minimizan la pérdida entre recompensas predichas y reales.
+
+\subsection{Escalabilidad y Tolerancia a Fallos}
+La arquitectura está diseñada para manejar el crecimiento operacional:
+
+\textbf{Escalamiento automático:} Los contenedores pueden replicarse automáticamente basándose en métricas como uso de CPU, memoria, y latencia de respuesta.
+
+\textbf{Distribución de carga:} Un balanceador de carga distribuye las solicitudes entre múltiples instancias de cada servicio para evitar cuellos de botella.
+
+\textbf{Recuperación ante fallos:} Si un servicio falla, el sistema puede continuar operando con funcionalidad reducida mientras se reinicia automáticamente el componente afectado.
+
+\textbf{Respaldos de datos:} Toda la información crítica se replica en múltiples ubicaciones geográficas para garantizar disponibilidad continua.
+
+\section{Metodología de Implementación y Evaluación}
+
+\subsection{Entorno de Simulación para Entrenamiento}
+Se desarrollará un entorno de simulación que replica las condiciones específicas de Bogotá para entrenar el modelo de aprendizaje por refuerzo:
+
+\textbf{Datos geográficos:} Integración de mapas detallados de Bogotá con información de calles, restricciones de tráfico, y zonas de alta demanda basadas en datos históricos.
+
+\textbf{Patrones de tráfico:} Simulación de congestión vehicular basada en datos reales, incluyendo las 191 horas anuales promedio que los conductores pasan en tráfico \cite{inrix2023}.
+
+\textbf{Demanda dinámica:} Generación de pedidos con distribuciones que reflejan patrones reales de comercio electrónico en Colombia, incluyendo picos durante eventos especiales.
+
+\textbf{Condiciones variables:} Simulación de factores externos como clima, accidentes, y eventos especiales que afectan las condiciones de entrega.
+
+\subsection{Proceso de Entrenamiento del Modelo}
+\textbf{Entrenamiento offline:} El modelo se entrenará utilizando 1 millón de episodios simulados, donde cada episodio representa un día completo de operaciones con 100-500 entregas.
+
+\textbf{Estrategia de exploración:} Se implementará una estrategia epsilon-greedy que gradualmente reduce la exploración aleatoria a medida que el modelo mejora, balanceando entre aprendizaje de nuevas estrategias y explotación de conocimiento adquirido.
+
+\textbf{Validación durante entrenamiento:} Evaluación continua del modelo usando métricas como tiempo promedio de entrega y distancia total recorrida para monitorear el progreso del aprendizaje.
+
+\textbf{Optimización para producción:} El modelo final será optimizado para reducir su tamaño y tiempo de inferencia mediante técnicas de compresión sin pérdida significativa de precisión.
+
+\subsection{Criterios y Métricas de Evaluación}
+
+\subsubsection{Métricas de Eficiencia Operacional}
+\textbf{Tiempo promedio de entrega:} Medición del tiempo transcurrido desde que se confirma un pedido hasta que se completa la entrega, con objetivo de reducción del 25\%.
+
+\textbf{Distancia total recorrida:} Suma de kilómetros recorridos por toda la flota, buscando una reducción del 20\% comparado con métodos tradicionales.
+
+\textbf{Entregas por hora:} Número promedio de entregas completadas por vehículo por hora, con meta de incremento del 30\%.
+
+\textbf{Utilización de flota:} Porcentaje de tiempo que los vehículos están activamente realizando entregas versus tiempo inactivo.
+
+\subsubsection{Métricas de Calidad de Servicio}
+\textbf{Cumplimiento de ventanas de tiempo:} Porcentaje de entregas realizadas dentro de la ventana solicitada por el cliente, con objetivo superior al 95\%.
+
+\textbf{Entregas fallidas:} Número de entregas que requieren múltiples intentos, con meta de mantener bajo el 5\%.
+
+\textbf{Satisfacción del cliente:} Encuestas de satisfacción en escala 1-10, con objetivo de mantener promedio superior a 8.5.
+
+\subsubsection{Métricas Técnicas del Sistema}
+\textbf{Latencia de respuesta:} Tiempo que toma el sistema en generar una decisión de ruteo, con objetivo de mantener bajo 100 milisegundos.
+
+\textbf{Disponibilidad del sistema:} Porcentaje de tiempo que el sistema está operacional, con meta de 99.9\% de uptime.
+
+\textbf{Escalabilidad:} Capacidad de manejar incrementos en carga de trabajo, medida por el número máximo de vehículos que puede coordinar simultáneamente.
+
+\subsection{Diseño Experimental}
+
+\subsubsection{Experimento 1: Validación en Simulación Controlada}
+\textbf{Configuración:} Simulación de 1000 entregas diarias durante 30 días en un entorno que replica fielmente las condiciones de Bogotá.
+
+\textbf{Variables controladas:} Patrones de tráfico (basados en datos históricos), distribución de demanda por zonas, y condiciones climáticas típicas.
+
+\textbf{Comparación:} El sistema propuesto será comparado contra algoritmos tradicionales de ruteo y métodos heurísticos existentes.
+
+\textbf{Métricas registradas:} Todas las métricas de eficiencia, calidad y técnicas definidas anteriormente.
+
+\subsubsection{Experimento 2: Prueba Piloto en Entorno Real}
+\textbf{Colaboración empresarial:} Trabajo con una empresa de mensajería local para implementar el sistema en un subconjunto de su operación.
+
+\textbf{Alcance limitado:} Prueba con 10 vehículos durante 2 semanas en 3 localidades específicas de Bogotá.
+
+\textbf{Medición en tiempo real:} Recolección de datos operacionales reales incluyendo tiempos de entrega, costos de combustible, y retroalimentación de conductores.
+
+\textbf{Protocolo de seguridad:} Sistema de respaldo tradicional disponible inmediatamente en caso de fallos del sistema experimental.
+
+\subsubsection{Experimento 3: Pruebas de Estrés y Escalabilidad}
+\textbf{Simulación de alta demanda:} Replicación de condiciones extremas como las del Black Friday, con hasta 10,000 pedidos por hora.
+
+\textbf{Prueba de capacidad:} Evaluación del sistema con hasta 1000 vehículos operando simultáneamente.
+
+\textbf{Tolerancia a fallos:} Simulación de fallos de componentes individuales para validar la capacidad de recuperación del sistema.
+
+\textbf{Análisis de recursos:} Monitoreo del uso de CPU, memoria, y ancho de banda durante condiciones de alta carga.
+
+\subsection{Metodología de Comparación}
+El rendimiento del sistema propuesto será evaluado contra tres líneas base:
+
+\textbf{Baseline 1 - Ruteo manual:} Métodos tradicionales utilizados actualmente por empresas locales, donde las rutas se planifican manualmente con ayuda de herramientas básicas.
+
+\textbf{Baseline 2 - Algoritmos heurísticos:} Implementación de algoritmos genéticos y heurísticas de búsqueda local optimizadas para el problema de ruteo.
+
+\textbf{Baseline 3 - Soluciones comerciales:} Comparación con sistemas comerciales existentes como Google Route Optimization API.
+
+\subsection{Criterios de Éxito del Proyecto}
+El proyecto se considerará exitoso si cumple los siguientes criterios objetivos:
+
+\begin{enumerate}
+    \item Reducción mínima del 20\% en tiempos promedio de entrega comparado con métodos actuales.
+    \item Mantenimiento de disponibilidad del sistema superior al 99\% durante las pruebas.
+    \item Demostración de que el costo de implementación puede recuperarse en un plazo máximo de 6 meses a través de ahorros operacionales.
+    \item Obtención de calificación promedio superior a 8/10 en facilidad de uso reportada por conductores participantes.
+    \item Validación técnica de que el sistema puede escalar para manejar al menos 500 vehículos simultáneamente sin degradación significativa del rendimiento.
+\end{enumerate}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{grafico-expectativo.png}
+    \caption{Mejora esperada para la implementación}
+    \label{fig:placeholder}
+\end{figure}
+\section{Arquitectura General}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{arquitectura-general.png}
+    \caption{Arquitectura general propuesta para la optimización dinámica de rutas de última milla mediante aprendizaje por refuerzo profundo.}
+    \label{fig:arquitectura-general}
+\end{figure}
+
+\subsection{Descripción de la Arquitectura Propuesta}
+
+La arquitectura propuesta se fundamenta en los principios de \textit{computación en la nube}, \textit{microservicios} y \textit{aprendizaje por refuerzo profundo} (Deep Q-Learning), con el objetivo de resolver el problema de optimización dinámica de rutas de última milla en entornos urbanos altamente variables, como el de la ciudad de Bogotá. El diseño busca garantizar escalabilidad, resiliencia ante fallos y capacidad de respuesta en tiempo real frente a fluctuaciones en las condiciones del tráfico, clima o demanda logística.
+
+\subsubsection{Visión General por Capas}
+
+La solución se organiza en siete capas funcionales que integran la captura, procesamiento y análisis de datos heterogéneos, permitiendo la toma de decisiones autónoma basada en inteligencia artificial.
+
+\paragraph{Capa 1: Aplicaciones Frontend}
+
+Incluye las interfaces de interacción con los usuarios finales del sistema:
+\begin{itemize}
+    \item \textbf{Aplicación móvil para conductores:} desarrollada en Flutter para Android e iOS, permite la recepción de rutas optimizadas, el envío de telemetría y la actualización del estado de las entregas en tiempo real.
+    \item \textbf{Panel administrativo web:} implementado en React, facilita la visualización geoespacial de flotas, métricas operativas y el monitoreo de desempeño del sistema.
+\end{itemize}
+
+Ambas aplicaciones se comunican de manera segura con los servicios internos mediante un \textit{API Gateway} protegido con autenticación JWT y cifrado TLS.
+
+\paragraph{Capa 2: API Gateway y Autenticación}
+
+El \textit{API Gateway} (por ejemplo, AWS API Gateway o Kong) actúa como punto de acceso único para todas las solicitudes externas. Sus funciones incluyen el enrutamiento de peticiones hacia los microservicios adecuados, la aplicación de políticas de autenticación y autorización, el registro de auditoría y la limitación de tráfico. Esta capa asegura un aislamiento efectivo entre los clientes externos y la lógica de negocio interna, mejorando la seguridad y mantenibilidad del sistema.
+
+\paragraph{Capa 3: Fuentes Externas de Datos en Tiempo Real}
+
+El sistema consume y unifica información de diversas fuentes externas que influyen directamente en la toma de decisiones:
+\begin{itemize}
+    \item \textbf{APIs de tráfico} (Google Maps, Waze) para obtener condiciones viales actualizadas.
+    \item \textbf{APIs meteorológicas} (OpenWeatherMap) que aportan datos sobre condiciones climáticas en tiempo real.
+    \item \textbf{Fuentes de demanda} internas o de terceros, que reflejan las variaciones en el volumen de pedidos o entregas.
+\end{itemize}
+
+Los datos obtenidos son procesados por el módulo de \textit{recolección de datos}, que los normaliza y publica en el bus de eventos para su posterior análisis.
+
+\paragraph{Capa 4: Bases de Datos y Almacenamiento}
+
+La capa de persistencia combina almacenamiento relacional y no relacional, así como repositorios históricos:
+\begin{itemize}
+    \item \textbf{Amazon Aurora PostgreSQL:} administra los registros de pedidos, entregas y operaciones logísticas, garantizando consistencia transaccional y replicación multi-región.
+    \item \textbf{Amazon DynamoDB Global Tables:} maneja la información de telemetría y estado vehicular con baja latencia global.
+    \item \textbf{Amazon S3:} almacena datos históricos para el entrenamiento del modelo, además de artefactos generados por el proceso de aprendizaje profundo.
+\end{itemize}
+
+\paragraph{Capa 5: Microservicios en Contenedores (Orquestación con Kubernetes)}
+
+La lógica de negocio y los componentes de inteligencia artificial se implementan como microservicios independientes desplegados en un \textit{cluster Kubernetes} (EKS, AKS o GKE), siguiendo un patrón de escalamiento horizontal. Los principales microservicios son:
+\begin{itemize}
+    \item \textbf{Recolección de Datos:} obtiene y publica información en tiempo real de tráfico, clima y demanda.
+    \item \textbf{Gestión de Flota:} coordina vehículos, pedidos y actualizaciones de estado mediante gRPC o REST.
+    \item \textbf{Optimización IA:} ejecuta el modelo de \textit{Deep Q-Learning} en modo inferencia, generando rutas con latencias inferiores a 100 ms.
+    \item \textbf{Simulación y Entrenamiento RL:} reentrena periódicamente el modelo utilizando datos históricos y escenarios simulados.
+    \item \textbf{Monitoreo y Logging:} gestionado con Prometheus y Grafana, proporciona métricas operacionales, trazabilidad y alertas.
+\end{itemize}
+
+La comunicación entre microservicios se realiza mediante un \textit{bus de eventos} (Kafka o AWS SNS/SQS), lo que permite un desacoplamiento funcional y resiliencia ante picos de carga.
+
+\paragraph{Capa 6: Flujo de Datos e Integración de IA}
+
+El flujo de información sigue una secuencia orquestada que habilita el aprendizaje y la optimización continua:
+\begin{enumerate}
+    \item Las fuentes externas envían información al servicio de recolección de datos.
+    \item Los datos procesados se almacenan en S3 y se publican como eventos en el bus de mensajería.
+    \item El servicio de entrenamiento accede a los datos históricos para reentrenar el modelo de \textit{Deep Q-Learning}, actualizando los artefactos en S3.
+    \item El microservicio de optimización carga el modelo actualizado y genera rutas óptimas en tiempo real.
+    \item La capa de gestión de flota transmite las rutas a los conductores a través de WebSockets o notificaciones push.
+\end{enumerate}
+
+\paragraph{Capa 7: Monitoreo, Observabilidad y Administración}
+
+El sistema integra un stack de observabilidad que recolecta métricas clave (uso de CPU, latencia de inferencia, disponibilidad de microservicios, colas activas, etc.), brindando visibilidad completa del entorno operativo. El panel administrativo centraliza esta información, permitiendo la supervisión continua y la detección proactiva de anomalías.
+
+\subsubsection{Características Clave de la Arquitectura}
+
+\begin{itemize}
+    \item \textbf{Escalabilidad automática:} los microservicios se replican dinámicamente según métricas de carga (\textit{auto-scaling}).
+    \item \textbf{Alta disponibilidad:} la replicación y el reinicio automático de contenedores aseguran un SLA superior al 99.9\%.
+    \item \textbf{Procesamiento en tiempo real:} el uso de comunicación asincrónica basada en eventos garantiza respuestas menores a 100 ms.
+    \item \textbf{Entrenamiento continuo:} el modelo de \textit{Deep Q-Learning} se reentrena con nuevos datos, mejorando su política de decisión con el tiempo.
+    \item \textbf{Integración de datos heterogéneos:} combina fuentes de tráfico, clima y demanda para generar decisiones adaptativas en entornos urbanos dinámicos.
+\end{itemize}
+
+\subsubsection{Alineación con los Objetivos del Proyecto}
+
+La arquitectura propuesta se alinea directamente con los objetivos del proyecto, al:
+\begin{itemize}
+    \item Optimizar la \textbf{eficiencia operacional} mediante rutas adaptativas y dinámicas.
+    \item Promover la \textbf{escalabilidad y reutilización} a través de su estructura modular basada en microservicios.
+    \item Implementar un mecanismo de \textbf{aprendizaje continuo}, adaptando las decisiones a las condiciones reales de operación.
+    \item Asegurar \textbf{alta disponibilidad} y \textbf{tolerancia a fallos} en un entorno distribuido y multirregional.
+\end{itemize}
+
+\subsubsection{Conclusión Técnica}
+
+En síntesis, la arquitectura distribuida propuesta representa una solución moderna, resiliente y extensible para la optimización logística urbana en Colombia. Su enfoque modular y escalable permite la incorporación futura de componentes avanzados, como transporte multimodal, flotas autónomas o despliegues regionales, contribuyendo de manera directa a la transformación digital y sostenibilidad del sector logístico nacional.
+
+\section{Arquitectura Prototipo}
+\label{sec:arquitectura-sagemaker}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\linewidth]{arquitectura-prototipo.png}
+    \caption{Arquitectura propuesta para el entrenamiento del modelo Deep Q-Learning utilizando servicios gestionados de AWS.}
+    \label{fig:arquitectura-prototipo}
+\end{figure}
+
+La arquitectura propuesta para el entrenamiento del agente basado en \textit{Deep Q-Learning} (DQN) se diseñó para cumplir con los principios de escalabilidad, reproducibilidad y automatización, alineados con las mejores prácticas de \textit{MLOps}. Esta solución aprovecha los servicios gestionados de la nube de Amazon Web Services (AWS) — tales como Amazon S3, AWS Glue, Amazon SageMaker, AWS Step Functions y Amazon CloudWatch — para minimizar la complejidad operativa y facilitar la replicación de experimentos de aprendizaje por refuerzo. 
+
+El diseño modular propuesto permite entrenar y versionar agentes de optimización de rutas de última milla mediante un flujo completamente automatizado de preparación de datos, simulación urbana, entrenamiento distribuido y registro del modelo. A continuación, se describen los componentes funcionales de la arquitectura y sus interacciones principales.
+
+\subsection{Resumen funcional}
+El sistema está compuesto por ocho capas funcionales que conforman el ciclo completo de entrenamiento del modelo DQN:
+\begin{enumerate}
+  \item Fuentes de datos y catálogo (Data Lake).
+  \item Procesamiento previo (ETL) y generación de \textit{datasets} para simulación.
+  \item Entorno de simulación urbana (\textit{Gym-like environment}).
+  \item Ejecución de entrenamiento distribuido en SageMaker.
+  \item Registro y versionado de modelos entrenados.
+  \item Monitoreo y observabilidad centralizada.
+  \item Infraestructura de ejecución (EKS/EC2 con GPU).
+  \item Orquestación y automatización del pipeline (Step Functions).
+\end{enumerate}
+
+\subsection{Fuentes de datos para entrenamiento}
+El entrenamiento del agente se basa en múltiples fuentes de datos heterogéneas que alimentan el entorno de simulación:
+\begin{itemize}
+  \item \textbf{Amazon S3 (Datos históricos):} almacena datos de tráfico, condiciones climáticas y registros de pedidos, actuando como un \textit{Data Lake} resiliente y de bajo costo.
+  \item \textbf{Mapas geográficos (OSM / Bogotá):} contiene capas vectoriales y datos topológicos derivados de \textit{OpenStreetMap}, necesarias para modelar la infraestructura vial.
+  \item \textbf{AWS Glue Data Catalog:} organiza los metadatos de los conjuntos de datos, permitiendo su descubrimiento y reutilización eficiente.
+\end{itemize}
+
+\noindent\textit{Justificación técnica:} la separación entre el almacenamiento bruto (S3) y la catalogación (Glue) garantiza trazabilidad, reproducibilidad y eficiencia en las etapas de procesamiento posterior.
+
+\subsection{Procesamiento previo y simulación}
+\begin{itemize}
+  \item \textbf{AWS Glue Jobs:} ejecutan tareas de transformación, limpieza, imputación y normalización de datos. En esta etapa se generan las variables de entrada relevantes para el modelo, tales como velocidad promedio por tramo, variaciones de tráfico y frecuencia de pedidos.
+  \item \textbf{Entorno de simulación urbana:} implementado sobre \textbf{Amazon SageMaker Training Jobs}, simula la dinámica de una ciudad como Bogotá, incluyendo factores estocásticos de congestión, condiciones meteorológicas y variaciones horarias de la demanda. Este entorno se implementa bajo una interfaz \textit{Gym-like}, compatible con los estándares de \textit{Reinforcement Learning}.
+\end{itemize}
+
+\noindent\textit{Justificación técnica:} la centralización del preprocesamiento en Glue y la simulación gestionada en SageMaker permiten mantener un flujo de datos reproducible y escalable dentro del mismo ecosistema AWS.
+
+\subsection{Entrenamiento del modelo de aprendizaje por refuerzo}
+El agente se entrena utilizando un algoritmo de \textit{Deep Q-Learning} implementado en \textit{PyTorch} y \textit{Stable Baselines3}, desplegado como un \textbf{SageMaker Training Job} en instancias GPU optimizadas. Las principales características de esta etapa incluyen:
+\begin{itemize}
+  \item \textbf{Replay Buffer:} almacenamiento temporal de transiciones para un aprendizaje más estable.
+  \item \textbf{Política $\epsilon$-greedy:} balance entre exploración y explotación durante el entrenamiento.
+  \item \textbf{Checkpointing periódico:} permite retomar el entrenamiento o comparar versiones del modelo.
+\end{itemize}
+
+Para un entorno académico, se recomienda entrenar con un subconjunto de datos y entre 50.000 y 100.000 episodios, lo cual equilibra calidad y costo computacional.
+
+\subsection{Almacenamiento y versionado de modelos}
+\begin{itemize}
+  \item \textbf{SageMaker Model Registry:} mantiene un registro versionado de los modelos entrenados junto con metadatos (hiperparámetros, métricas, fecha, dataset utilizado).
+  \item \textbf{Amazon S3 (Almacenamiento de artefactos):} conserva los pesos del modelo en formatos optimizados (TorchScript u ONNX) para inferencia y validación.
+\end{itemize}
+
+\noindent\textit{Justificación técnica:} separar el registro lógico del almacenamiento físico facilita la trazabilidad de versiones y la auditoría de resultados.
+
+\subsection{Monitoreo y observabilidad}
+El monitoreo del proceso de entrenamiento se realiza mediante:
+\begin{itemize}
+  \item \textbf{Amazon CloudWatch:} captura métricas de recompensa promedio, pérdida, latencia de entrenamiento y utilización de GPU.
+  \item \textbf{Amazon Managed Grafana:} ofrece dashboards interactivos para visualizar la convergencia del agente y detectar desviaciones o ineficiencias.
+\end{itemize}
+
+\noindent\textit{Relevancia:} la observabilidad es fundamental para evaluar el desempeño del agente y comparar diferentes configuraciones de entrenamiento.
+
+\subsection{Infraestructura de ejecución}
+El entrenamiento puede ejecutarse en dos modalidades:
+\begin{itemize}
+  \item \textbf{Amazon SageMaker (recomendada):} entrenamiento gestionado en instancias GPU (g4dn/p3) con escalado automático.
+  \item \textbf{Amazon EKS (avanzada):} entrenamiento distribuido mediante contenedores orquestados, ideal para escenarios de carga variable o multi-agente.
+\end{itemize}
+En ambos casos, los datos temporales se almacenan en volúmenes \textbf{Amazon EBS}, y la seguridad se gestiona con \textbf{IAM Roles} y políticas de acceso mínimo.
+
+\subsection{Orquestación y flujo de datos}
+\textbf{AWS Step Functions} automatiza la secuencia completa de operaciones, garantizando trazabilidad y control del flujo. El pipeline sigue el orden:
+\begin{enumerate}
+  \item AWS Glue ejecuta el proceso ETL y almacena los resultados en S3.
+  \item El simulador urbano genera episodios de entrenamiento a partir de esos datos.
+  \item SageMaker ejecuta el entrenamiento y registra métricas en CloudWatch.
+  \item El modelo final se registra y valida automáticamente en el \textit{Model Registry}.
+\end{enumerate}
+
+\noindent\textit{Ventaja:} la automatización elimina la intervención manual y permite repetir experimentos bajo condiciones controladas, cumpliendo con los principios de \textit{Reproducible AI}.
+
+\subsection{Consideraciones de MLOps y buenas prácticas}
+\begin{itemize}
+  \item \textbf{Control de costos:} uso de instancias \textit{Spot}, reducción del número de episodios y apagado automático tras finalizar los jobs.
+  \item \textbf{Reproducibilidad:} versionamiento de datasets en Glue Catalog y S3; fijación de semillas aleatorias y registro de experimentos.
+  \item \textbf{Despliegue:} exportación del modelo a TorchScript/ONNX y despliegue en un \textit{SageMaker Endpoint} para pruebas de inferencia.
+  \item \textbf{Seguridad:} encriptación de datos (SSE-S3), control de acceso mediante IAM y segmentación de roles por servicio.
+\end{itemize}
+
+\subsection{Plan de implementación mínima}
+Para el alcance académico del proyecto, se propone un \textit{mínimo viable} con las siguientes etapas:
+\begin{enumerate}
+  \item Preparar un subconjunto de datos históricos de Bogotá en Amazon S3.
+  \item Registrar los datos procesados en AWS Glue Catalog.
+  \item Desarrollar un entorno Gym-like en Python (simulador urbano).
+  \item Implementar el entrenamiento DQN con PyTorch y Stable Baselines3.
+  \item Ejecutar el entrenamiento en Amazon SageMaker (instancia GPU individual).
+  \item Registrar el modelo en SageMaker Model Registry y almacenar artefactos en S3.
+  \item Monitorear el entrenamiento con CloudWatch y visualizar métricas en Grafana.
+\end{enumerate}
+
+\subsection{Conclusión}
+La arquitectura propuesta demuestra la factibilidad de un flujo de entrenamiento distribuido y reproducible basado en servicios gestionados en la nube. Además, satisface los criterios del proyecto transversal, al integrar un diseño arquitectónico, un componente de inteligencia artificial aplicado y un despliegue efectivo sobre infraestructura cloud. Su modularidad permite futuras extensiones, como la incorporación de aprendizaje multiagente, optimización continua o integración con servicios de planificación logística en tiempo real.
+
+
+\section{Conclusiones}
+
+\subsection{Resumen de Contribuciones}
+Este proyecto representa una oportunidad única para aplicar tecnologías avanzadas de inteligencia artificial a un problema crítico y real del sector logístico colombiano. La combinación de aprendizaje por refuerzo con arquitecturas modernas de servicios en la nube ofrece una solución técnicamente sólida que puede transformar la manera en que las empresas abordan la logística de última milla.
+
+Las principales contribuciones esperadas del proyecto incluyen:
+
+\textbf{Innovación tecnológica:} Desarrollo de un sistema pionero en Colombia que integra aprendizaje automático avanzado para optimización logística en tiempo real, estableciendo un precedente para la adopción de inteligencia artificial en el sector.
+
+\textbf{Impacto económico:} Reducción significativa de costos operacionales para empresas de logística, con potencial de ahorro del 20-30\% en gastos de última milla, lo que se traduce en millones de pesos anuales para operadores medianos y grandes.
+
+\textbf{Mejora en la experiencia del cliente:} Entregas más rápidas y confiables que pueden incrementar la satisfacción del cliente y la competitividad de las empresas colombianas en el creciente mercado de comercio electrónico.
+
+\textbf{Sostenibilidad ambiental:} La optimización de rutas conlleva una reducción directa en el consumo de combustible y emisiones de CO2, contribuyendo a objetivos de sostenibilidad urbana en ciudades como Bogotá.
+
+\subsection{Impacto Esperado en el Sector}
+La implementación exitosa de este sistema podría catalizar una transformación digital más amplia en el sector logístico colombiano. El enfoque modular y escalable garantiza que la solución pueda adaptarse a diferentes contextos urbanos y evolucionar con las necesidades cambiantes del mercado.
+
+Además, el proyecto establece un modelo replicable para otras ciudades latinoamericanas con desafíos similares de congestión urbana y crecimiento del comercio electrónico, posicionando potencialmente a Colombia como líder regional en innovación logística.
+
+\subsection{Trabajo Futuro}
+El proyecto sienta las bases para futuras investigaciones y desarrollos en áreas complementarias:
+
+\textbf{Extensión multimodal:} Integración de diferentes medios de transporte incluyendo bicicletas, motocicletas, y potencialmente drones para entregas de último kilómetro.
+
+\textbf{Análisis predictivo avanzado:} Desarrollo de capacidades para predecir demanda futura y optimizar inventarios en centros de distribución basándose en patrones aprendidos.
+
+\textbf{Integración con ciudades inteligentes:} Colaboración con iniciativas de ciudad inteligente para integrar el sistema con infraestructura urbana conectada y sistemas de gestión de tráfico municipales.
+
+\textbf{Adaptación a vehículos autónomos:} Preparación de la arquitectura para futuras flotas de vehículos autónomos, posicionando la solución para la siguiente generación de tecnologías de transporte.
+
+El éxito de este proyecto no solo beneficiará directamente a las empresas participantes, sino que también contribuirá al desarrollo del ecosistema tecnológico colombiano y al posicionamiento del país como un referente en la aplicación de inteligencia artificial para resolver desafíos urbanos complejos.
+
+% ------------------- BIBLIOGRAFÍA -------------------
+\begin{thebibliography}{99}
+\bibitem{ccce2024} Cámara Colombiana de Comercio Electrónico. \textit{Informe de la Industria de eCommerce en Colombia 2024}. CCCE, 2024.
+
+\bibitem{lastmile2020} Savelsbergh, M., Van Woensel, T. \textit{50th Anniversary Invited Article—City Logistics: Challenges and Opportunities}. Transportation Science, 2016.
+
+\bibitem{inrix2023} INRIX Research. \textit{Global Traffic Scorecard 2023}. Disponible en: \url{https://inrix.com}.
+
+\bibitem{sutton2018} Sutton, R., Barto, A. \textit{Reinforcement Learning: An Introduction}. MIT Press, 2018.
+
+\bibitem{mnih2015} Mnih, V. et al. \textit{Human-level control through deep reinforcement learning}. Nature, 518(7540):529–533, 2015.
+
+\bibitem{newman2015} Newman, S. \textit{Building Microservices: Designing Fine-Grained Systems}. O'Reilly Media, 2015.
+
+\bibitem{nazari2018} Nazari, M. et al. \textit{Reinforcement Learning for Solving the Vehicle Routing Problem}. NeurIPS, 2018.
+
+\bibitem{kwon2021} Kwon, Y. et al. \textit{Deep Reinforcement Learning for Dynamic Vehicle Routing}. Transportation Research Part E, 2021.
+
+\bibitem{agatz2022} Agatz, N. et al. \textit{Deep Q-learning for same-day delivery with vehicles and drones}. European Journal of Operational Research, 2022.
+
+\bibitem{murray2015} Murray, A., Chu, A. \textit{The flying sidekick traveling salesman problem}. Transportation Research Part E, 2015.
+
+\bibitem{repositorio2024} Olivares Guzmán, C., Saavedra Moscoso, C. \textit{Machine Learning en la optimización de rutas: Una revisión}. Repositorio USS, 2024.
+
+\bibitem{pilog2025} Pilog S.A.S. \textit{Logística de última milla en 2025}. Pilog, 2025.
+
+\bibitem{tsomobile} TSO Mobile. \textit{Última milla logística: 4 desafíos y tendencias}. TSO Mobile, 2023.
+
+\bibitem{kubernetes} Kubernetes Documentation. \textit{Overview}. Kubernetes.io, 2024.
+
+\bibitem{elastic2023} Microsoft. \textit{Arquitectura de microservicios en Azure Kubernetes Service}. Microsoft Learn, 2023.
+
+\bibitem{rappi} Aithor. \textit{Rappi: El impacto de la logística de última milla en Colombia}. Aithor, 2025.
+\end{thebibliography}
+
+\end{document}
