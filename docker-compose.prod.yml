@@ -61,7 +61,7 @@ services:
       - ./graphhopper/data:/data
       - ./graphhopper/config.yml:/config/config.yml:ro
     environment:
-      JAVA_OPTS: "-Xmx1g -Xms512m"
+      JAVA_OPTS: "-Xmx512m -Xms256m -XX:+UseSerialGC"
     command: ["--config", "/config/config.yml"]
     networks:
       - vrp-network
@@ -69,8 +69,12 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:8989/health"]
       interval: 30s
       timeout: 10s
-      retries: 10
-      start_period: 180s
+      retries: 15
+      start_period: 300s
+    deploy:
+      resources:
+        limits:
+          memory: 768M
 
   # ===========================================
   # Backend FastAPI - Servicio principal con RL

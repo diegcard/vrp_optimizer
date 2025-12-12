@@ -2,7 +2,10 @@ graphhopper:
   datareader.file: /data/colombia-latest.osm.pbf
   graph.location: /data/graph-cache
   import.osm.ignored_highways: ""
-  graph.flag_encoders: car
+  
+  # GraphHopper 8.x configuration
+  graph.encoded_values: road_class,road_class_link,road_environment,max_speed,road_access
+  graph.vehicles: car
   
   profiles:
     - name: car
@@ -20,3 +23,4 @@ server:
   application_connectors:
     - type: http
       port: 8989
+      bind_host: 0.0.0.0
