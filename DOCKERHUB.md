@@ -78,13 +78,29 @@ docker pull diegcard/vrp-frontend:latest
 docker-compose -f docker-compose.prod.yml pull
 ```
 
-### 6. Iniciar los servicios
+### 6. (RECOMENDADO) Crear memoria swap para EC2
+
+```bash
+# Crear archivo de swap de 2GB (ayuda a evitar OOM kills)
+sudo dd if=/dev/zero of=/swapfile bs=1M count=2048
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+
+# Verificar que el swap esté activo
+free -h
+
+# Para que el swap persista después de reiniciar
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+```
+
+### 7. Iniciar los servicios
 
 ```bash
 docker-compose -f docker-compose.prod.yml up -d
 ```
 
-### 7. Verificar que todo esté corriendo
+### 8. Verificar que todo esté corriendo
 
 ```bash
 # Ver estado de todos los servicios
@@ -102,7 +118,19 @@ docker logs -f vrp-graphhopper
 
 **Nota:** GraphHopper puede tardar 2-3 minutos en cargar el mapa OSM en la primera ejecución.
 
-### 8. Configurar Security Groups en AWS
+**Verificación de servicios healthy:**
+```bash
+# Todos deben mostrar (healthy) excepto Prometheus y Grafana
+docker-compose -f docker-compose.prod.yml ps
+
+# Verificar que el backend responde
+curl http://localhost:8000/api/v1/health/
+
+# Verificar GraphHopper
+curl http://localhost:8989/health
+```
+
+### 9. Configurar Security Groups en AWS
 
 Asegúrate de abrir los siguientes puertos en tu Security Group:
 
@@ -115,11 +143,19 @@ Asegúrate de abrir los siguientes puertos en tu Security Group:
 | 3001 | Grafana | Tu IP |
 | 9090 | Prometheus | Tu IP |
 
-### 9. Acceder a la aplicación
+### 10. Acceder a la aplicación
+
+Una vez configurados los Security Groups:
 
 - **Frontend**: `http://tu-ip-publica`
 - **Backend API**: `http://tu-ip-publica:8000`
 - **Swagger Docs**: `http://tu-ip-publica:8000/docs`
+- **Grafana**: `http://tu-ip-publica:3001` (admin / admin123)
+- **Prometheus**: `http://tu-ip-publica:9090`
+
+**Ejemplo con tu EC2:**
+- Frontend: `http://44.222.217.128`
+- API Docs: `http://44.222.217.128:8000/docs`
 
 ---
 
