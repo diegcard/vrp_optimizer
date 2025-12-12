@@ -41,13 +41,16 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"⚠️ GraphHopper no disponible: {e}")
     
-    # Cargar modelo RL si existe
+    # Cargar modelo RL si existe (no crítico para inicio)
     try:
         opt_service = OptimizationService()
-        await opt_service.load_model()
-        logger.info("✅ Modelo RL cargado")
+        model_loaded = await opt_service.load_model()
+        if model_loaded:
+            logger.info("✅ Modelo RL cargado")
+        else:
+            logger.info("ℹ️ Modelo RL no encontrado (se puede entrenar uno nuevo)")
     except Exception as e:
-        logger.warning(f"⚠️ Modelo RL no disponible: {e}")
+        logger.warning(f"⚠️ Error verificando modelo RL: {e}")
     
     logger.info("✅ VRP Optimizer Backend listo")
     

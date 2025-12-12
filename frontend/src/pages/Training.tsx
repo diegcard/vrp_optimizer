@@ -3,6 +3,12 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useStartTraining, useTrainingStatus, useStopTraining, useTrainingHistory, useModels, useLoadModel, useDeleteModel } from '../hooks/useApi'
 import toast from 'react-hot-toast'
 import type { TrainingConfig } from '../types'
+import Card from '../components/ui/Card'
+import Button from '../components/ui/Button'
+import Modal from '../components/ui/Modal'
+import Input from '../components/ui/Input'
+import Badge from '../components/ui/Badge'
+import LoadingSpinner from '../components/ui/LoadingSpinner'
 
 const defaultConfig: TrainingConfig = {
   num_episodes: 1000,
@@ -67,109 +73,164 @@ export default function Training() {
   }
   
   const isTraining = status?.is_training ?? false
-  const progress = status && status.total_episodes > 0 ? (status.current_episode / status.total_episodes) * 100 : 0
+  const progress = status && status.total_episodes > 0 
+    ? Math.min((status.current_episode / status.total_episodes) * 100, 100) 
+    : 0
+  
+  // Formatear tiempo
+  const formatTime = (seconds?: number) => {
+    if (!seconds || seconds < 0) return '--:--'
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.floor((seconds % 3600) / 60)
+    const secs = Math.floor(seconds % 60)
+    if (hours > 0) {
+      return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
+    }
+    return `${minutes}:${String(secs).padStart(2, '0')}`
+  }
   
   // Preparar datos para gráfico
-  const chartData = history.slice(-100).map((h, i) => ({
-    episode: h.episode,
-    reward: h.total_reward || h.reward || 0,
-    avgReward: history.slice(Math.max(0, i - 10), i + 1).reduce((acc, x) => acc + (x.total_reward || x.reward || 0), 0) / Math.min(i + 1, 10),
-    epsilon: (h.epsilon || 0) * 100,
-  }))
+  const chartData = history.slice(-100).map((h, i) => {
+    const reward = h.total_reward || h.reward || 0
+    const windowStart = Math.max(0, i - 10)
+    const windowEnd = i + 1
+    const windowSize = windowEnd - windowStart
+    const avgReward = history.slice(windowStart, windowEnd)
+      .reduce((acc, x) => acc + (x.total_reward || x.reward || 0), 0) / windowSize
+    
+    return {
+      episode: h.episode,
+      reward,
+      avgReward: avgReward || 0,
+      epsilon: (h.epsilon || 0) * 100,
+    }
+  })
   
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Entrenamiento RL</h1>
-          <p className="text-gray-500">Deep Q-Network para VRP</p>
+          <h1 className="text-3xl font-bold text-gray-900">Entrenamiento RL</h1>
+          <p className="text-gray-500 mt-1">Deep Q-Network para Optimización de Rutas VRP</p>
         </div>
         
         <div className="flex gap-3">
-          <button
+          <Button
+            variant="outline"
             onClick={() => setShowConfigModal(true)}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
             disabled={isTraining}
           >
             ⚙️ Configuración
-          </button>
+          </Button>
           
           {isTraining ? (
-            <button
+            <Button
+              variant="danger"
               onClick={handleStopTraining}
-              disabled={stopTraining.isPending}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+              isLoading={stopTraining.isPending}
             >
-              ⏹️ Detener
-            </button>
+              ⏹️ Detener Entrenamiento
+            </Button>
           ) : (
-            <button
+            <Button
               onClick={handleStartTraining}
+              isLoading={startTraining.isPending}
               disabled={startTraining.isPending}
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
             >
               ▶️ Iniciar Entrenamiento
-            </button>
+            </Button>
           )}
         </div>
       </div>
       
       {/* Training Status */}
       {status && (status.is_training || status.current_episode > 0) && (
-        <div className="bg-white rounded-xl shadow-sm p-6">
+        <Card>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">Estado del Entrenamiento</h2>
-            <span className={`px-3 py-1 rounded-full text-sm ${
-              status.is_training ? 'bg-blue-100 text-blue-700' :
-              status.current_episode >= status.total_episodes && status.total_episodes > 0 ? 'bg-green-100 text-green-700' :
-              'bg-gray-100 text-gray-700'
-            }`}>
+            <h2 className="text-lg font-semibold text-gray-900">Estado del Entrenamiento</h2>
+            <Badge variant={status.is_training ? 'primary' : 'success'}>
               {status.is_training ? '🔄 En progreso' :
-               status.current_episode >= status.total_episodes && status.total_episodes > 0 ? '✅ Completado' : 'Inactivo'}
-            </span>
+               status.current_episode >= status.total_episodes && status.total_episodes > 0 ? '✅ Completado' : '⏸️ Pausado'}
+            </Badge>
           </div>
           
           {/* Progress bar */}
-          <div className="mb-4">
-            <div className="flex justify-between text-sm mb-1">
-              <span>Progreso</span>
-              <span>{status.current_episode} / {status.total_episodes} episodios</span>
+          <div className="mb-6">
+            <div className="flex justify-between text-sm mb-2">
+              <span className="font-medium text-gray-700">Progreso del Entrenamiento</span>
+              <span className="font-semibold text-primary-600">
+                {status.current_episode} / {status.total_episodes} episodios ({progress.toFixed(1)}%)
+              </span>
             </div>
-            <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+            <div className="w-full h-4 bg-gray-200 rounded-full overflow-hidden shadow-inner">
               <div 
-                className="h-full bg-primary-500 rounded-full transition-all duration-500"
+                className="h-full bg-gradient-to-r from-primary-500 to-primary-600 rounded-full transition-all duration-300 flex items-center justify-end pr-2"
                 style={{ width: `${progress}%` }}
-              ></div>
+              >
+                {progress > 10 && (
+                  <span className="text-xs font-bold text-white">{progress.toFixed(0)}%</span>
+                )}
+              </div>
             </div>
           </div>
           
-          {/* Metrics */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="p-3 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-500">Reward Actual</p>
-              <p className="text-xl font-bold">{status.current_reward?.toFixed(2) ?? 'N/A'}</p>
+          {/* Metrics Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border border-blue-200">
+              <p className="text-xs font-medium text-blue-700 mb-1">Reward Actual</p>
+              <p className="text-2xl font-bold text-blue-900">
+                {status.current_reward !== null && status.current_reward !== undefined 
+                  ? status.current_reward.toFixed(2) 
+                  : '--'}
+              </p>
             </div>
-            <div className="p-3 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-500">Mejor Reward</p>
-              <p className="text-xl font-bold text-green-600">{status.best_reward?.toFixed(2) ?? 'N/A'}</p>
+            <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg border border-green-200">
+              <p className="text-xs font-medium text-green-700 mb-1">Mejor Reward</p>
+              <p className="text-2xl font-bold text-green-900">
+                {status.best_reward !== null && status.best_reward !== undefined 
+                  ? status.best_reward.toFixed(2) 
+                  : '--'}
+              </p>
             </div>
-            <div className="p-3 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-500">Promedio (últimos 100)</p>
-              <p className="text-xl font-bold">{status.avg_reward_last_100?.toFixed(2) ?? 'N/A'}</p>
+            <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg border border-purple-200">
+              <p className="text-xs font-medium text-purple-700 mb-1">Promedio (últimos 100)</p>
+              <p className="text-2xl font-bold text-purple-900">
+                {status.avg_reward_last_100 !== null && status.avg_reward_last_100 !== undefined 
+                  ? status.avg_reward_last_100.toFixed(2) 
+                  : '--'}
+              </p>
             </div>
-            <div className="p-3 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-500">Tiempo transcurrido</p>
-              <p className="text-xl font-bold">{Math.floor((status.elapsed_time_seconds || 0) / 60)}:{String(Math.floor((status.elapsed_time_seconds || 0) % 60)).padStart(2, '0')}</p>
+            <div className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg border border-orange-200">
+              <p className="text-xs font-medium text-orange-700 mb-1">Epsilon (Exploración)</p>
+              <p className="text-2xl font-bold text-orange-900">
+                {(status.epsilon * 100).toFixed(1)}%
+              </p>
             </div>
           </div>
-        </div>
+          
+          {/* Time Info */}
+          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
+            <div>
+              <p className="text-sm text-gray-500 mb-1">Tiempo Transcurrido</p>
+              <p className="text-lg font-semibold text-gray-900">
+                {formatTime(status.elapsed_time_seconds)}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 mb-1">Tiempo Estimado Restante</p>
+              <p className="text-lg font-semibold text-gray-900">
+                {formatTime(status.estimated_remaining_seconds)}
+              </p>
+            </div>
+          </div>
+        </Card>
       )}
       
       {/* Training Chart */}
       {chartData.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-lg font-semibold mb-4">Curva de Aprendizaje</h2>
+        <Card>
+          <h2 className="text-lg font-semibold mb-4 text-gray-900">Curva de Aprendizaje</h2>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
@@ -208,12 +269,12 @@ export default function Training() {
               </LineChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </Card>
       )}
       
       {/* Saved Models */}
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <h2 className="text-lg font-semibold mb-4">Modelos Guardados</h2>
+      <Card>
+        <h2 className="text-lg font-semibold mb-4 text-gray-900">Modelos Guardados</h2>
         
         {models.length > 0 ? (
           <div className="space-y-3">
@@ -250,17 +311,21 @@ export default function Training() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-500">
-            No hay modelos guardados. Entrene el agente para crear un modelo.
+          <div className="text-center py-12 text-gray-500">
+            <div className="text-4xl mb-4">🤖</div>
+            <p className="font-medium">No hay modelos guardados</p>
+            <p className="text-sm mt-1">Entrene el agente para crear un modelo</p>
           </div>
         )}
-      </div>
+      </Card>
       
       {/* Config Modal */}
-      {showConfigModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center" style={{ zIndex: 9999 }}>
-          <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-2xl" style={{ zIndex: 10000 }}>
-            <h2 className="text-xl font-bold mb-4">Configuración de Entrenamiento</h2>
+      <Modal
+        isOpen={showConfigModal}
+        onClose={() => setShowConfigModal(false)}
+        title="Configuración de Entrenamiento"
+        size="lg"
+      >
             
             <div className="space-y-4 max-h-96 overflow-y-auto">
               <div>
@@ -366,27 +431,26 @@ export default function Training() {
                 </div>
               </div>
             </div>
-            
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setShowConfigModal(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => {
-                  setShowConfigModal(false)
-                  toast.success('Configuración guardada')
-                }}
-                className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-              >
-                Guardar
-              </button>
-            </div>
-          </div>
+        
+        <div className="flex gap-3 pt-4">
+          <Button
+            variant="outline"
+            onClick={() => setShowConfigModal(false)}
+            className="flex-1"
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={() => {
+              setShowConfigModal(false)
+              toast.success('Configuración guardada')
+            }}
+            className="flex-1"
+          >
+            Guardar Configuración
+          </Button>
         </div>
-      )}
+      </Modal>
     </div>
   )
 }

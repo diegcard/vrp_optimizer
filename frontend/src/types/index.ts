@@ -19,12 +19,16 @@ export interface Customer {
 
 export interface Vehicle {
   id: string
-  name: string
+  plate_number: string
   capacity: number
+  vehicle_type?: string
   current_location?: Coordinates
-  status: 'available' | 'in_route' | 'maintenance'
-  speed_kmh?: number
-  cost_per_km?: number
+  status: 'available' | 'in_route' | 'maintenance' | 'offline'
+  driver_name?: string
+  driver_phone?: string
+  fuel_efficiency?: number
+  created_at?: string
+  updated_at?: string
 }
 
 export interface Depot {
@@ -87,15 +91,15 @@ export interface TrainingConfig {
 }
 
 export interface TrainingStatus {
-  status: 'idle' | 'running' | 'completed' | 'error'
+  is_training: boolean
   current_episode: number
   total_episodes: number
-  current_reward: number
-  best_reward: number
-  avg_reward_last_100: number
+  current_reward?: number
+  best_reward?: number
+  avg_reward_last_100?: number
+  epsilon: number
   elapsed_time_seconds: number
-  eta_seconds?: number
-  message?: string
+  estimated_remaining_seconds?: number
 }
 
 export interface TrainingHistory {

@@ -272,11 +272,12 @@ class TrainingStatus(BaseModel):
     is_training: bool
     current_episode: int
     total_episodes: int
-    current_reward: Optional[float]
-    avg_reward_last_100: Optional[float]
-    epsilon: float
-    elapsed_time_seconds: float
-    estimated_remaining_seconds: Optional[float]
+    current_reward: Optional[float] = None
+    best_reward: Optional[float] = None
+    avg_reward_last_100: Optional[float] = None
+    epsilon: float = 1.0
+    elapsed_time_seconds: float = 0.0
+    estimated_remaining_seconds: Optional[float] = None
 
 
 class TrainingResult(BaseModel):

@@ -4,6 +4,12 @@ import { useAppStore } from '../store/appStore'
 import MapView from '../components/MapView'
 import toast from 'react-hot-toast'
 import type { Customer } from '../types'
+import Card from '../components/ui/Card'
+import Button from '../components/ui/Button'
+import Modal from '../components/ui/Modal'
+import Input from '../components/ui/Input'
+import LoadingSpinner from '../components/ui/LoadingSpinner'
+import Badge from '../components/ui/Badge'
 
 export default function Customers() {
   const { data: customers = [], isLoading } = useCustomers()
@@ -21,9 +27,54 @@ export default function Customers() {
     demand: '1',
     priority: '1',
   })
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+  
+  const validateForm = () => {
+    const errors: Record<string, string> = {}
+    
+    if (!formData.name.trim()) {
+      errors.name = 'El nombre es requerido'
+    }
+    
+    if (!formData.lat || isNaN(parseFloat(formData.lat))) {
+      errors.lat = 'Latitud inválida'
+    } else {
+      const lat = parseFloat(formData.lat)
+      if (lat < -90 || lat > 90) {
+        errors.lat = 'Latitud debe estar entre -90 y 90'
+      }
+    }
+    
+    if (!formData.lon || isNaN(parseFloat(formData.lon))) {
+      errors.lon = 'Longitud inválida'
+    } else {
+      const lon = parseFloat(formData.lon)
+      if (lon < -180 || lon > 180) {
+        errors.lon = 'Longitud debe estar entre -180 y 180'
+      }
+    }
+    
+    const demand = parseInt(formData.demand)
+    if (isNaN(demand) || demand < 1) {
+      errors.demand = 'La demanda debe ser mayor a 0'
+    }
+    
+    const priority = parseInt(formData.priority)
+    if (isNaN(priority) || priority < 1 || priority > 5) {
+      errors.priority = 'La prioridad debe estar entre 1 y 5'
+    }
+    
+    setFormErrors(errors)
+    return Object.keys(errors).length === 0
+  }
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!validateForm()) {
+      toast.error('Por favor corrija los errores en el formulario')
+      return
+    }
     
     try {
       await createCustomer.mutateAsync({
@@ -40,18 +91,19 @@ export default function Customers() {
       toast.success('Cliente creado exitosamente')
       setShowModal(false)
       setFormData({ name: '', address: '', lat: '', lon: '', demand: '1', priority: '1' })
-    } catch (error) {
-      toast.error('Error al crear cliente')
+      setFormErrors({})
+    } catch (error: any) {
+      toast.error(error?.response?.data?.detail || 'Error al crear cliente')
     }
   }
   
   const handleDelete = async (id: string) => {
-    if (confirm('¿Está seguro de eliminar este cliente?')) {
+    if (window.confirm('¿Está seguro de eliminar este cliente?')) {
       try {
         await deleteCustomer.mutateAsync(id)
         toast.success('Cliente eliminado')
-      } catch (error) {
-        toast.error('Error al eliminar cliente')
+      } catch (error: any) {
+        toast.error(error?.response?.data?.detail || 'Error al eliminar cliente')
       }
     }
   }
@@ -62,13 +114,14 @@ export default function Customers() {
       lat: latlng.lat.toFixed(6),
       lon: latlng.lng.toFixed(6),
     }))
+    setFormErrors((prev) => ({ ...prev, lat: '', lon: '' }))
     setShowModal(true)
   }
   
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        <LoadingSpinner size="lg" />
       </div>
     )
   }
@@ -78,23 +131,63 @@ export default function Customers() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Clientes</h1>
-          <p className="text-gray-500">Gestiona los puntos de entrega</p>
+          <h1 className="text-3xl font-bold text-gray-900">Clientes</h1>
+          <p className="text-gray-500 mt-1">Gestiona los puntos de entrega</p>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-        >
+        <Button onClick={() => setShowModal(true)}>
           + Nuevo Cliente
-        </button>
+        </Button>
+      </div>
+      
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center text-2xl">
+              📍
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{customers.length}</p>
+              <p className="text-sm text-gray-500">Total Clientes</p>
+            </div>
+          </div>
+        </Card>
+        
+        <Card>
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-success-100 rounded-lg flex items-center justify-center text-2xl">
+              ✅
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{selectedCustomers.length}</p>
+              <p className="text-sm text-gray-500">Seleccionados</p>
+            </div>
+          </div>
+        </Card>
+        
+        <Card>
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-warning-100 rounded-lg flex items-center justify-center text-2xl">
+              📦
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">
+                {customers.reduce((sum, c) => sum + c.demand, 0)}
+              </p>
+              <p className="text-sm text-gray-500">Demanda Total</p>
+            </div>
+          </div>
+        </Card>
       </div>
       
       {/* Content */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Map */}
-        <div className="bg-white rounded-xl shadow-sm p-4">
-          <h2 className="text-lg font-semibold mb-4">Mapa - Click para agregar cliente</h2>
-          <div className="h-96">
+        <Card>
+          <h2 className="text-lg font-semibold mb-4 text-gray-900">
+            Mapa - Click para agregar cliente
+          </h2>
+          <div className="h-96 rounded-lg overflow-hidden">
             <MapView
               customers={customers.map(c => ({
                 ...c,
@@ -105,195 +198,207 @@ export default function Customers() {
               onCustomerClick={(customer) => toggleCustomerSelection(customer.id)}
             />
           </div>
-        </div>
+        </Card>
         
         {/* Customer List */}
-        <div className="bg-white rounded-xl shadow-sm p-4">
+        <Card>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">Lista de Clientes ({customers.length})</h2>
+            <h2 className="text-lg font-semibold text-gray-900">
+              Lista de Clientes ({customers.length})
+            </h2>
             <div className="flex gap-2">
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={selectAllCustomers}
-                className="text-sm text-primary-600 hover:text-primary-700"
+                disabled={customers.length === 0}
               >
-                Seleccionar todos
-              </button>
-              <button
+                Todos
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={clearCustomerSelection}
-                className="text-sm text-gray-500 hover:text-gray-600"
+                disabled={selectedCustomers.length === 0}
               >
                 Limpiar
-              </button>
+              </Button>
             </div>
           </div>
           
-          <div className="space-y-2 max-h-80 overflow-y-auto">
+          <div className="space-y-2 max-h-96 overflow-y-auto">
             {customers.map((customer) => (
               <div
                 key={customer.id}
-                className={`flex items-center justify-between p-3 rounded-lg border transition-colors cursor-pointer ${
-                  selectedCustomers.includes(customer.id)
-                    ? 'border-primary-500 bg-primary-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
+                className={`
+                  flex items-center justify-between p-4 rounded-lg border transition-all cursor-pointer
+                  ${selectedCustomers.includes(customer.id)
+                    ? 'border-primary-500 bg-primary-50 shadow-sm'
+                    : 'border-gray-200 hover:border-primary-300 hover:bg-gray-50'
+                  }
+                `}
                 onClick={() => toggleCustomerSelection(customer.id)}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
                   <input
                     type="checkbox"
                     checked={selectedCustomers.includes(customer.id)}
                     onChange={() => toggleCustomerSelection(customer.id)}
-                    className="w-4 h-4 text-primary-600 rounded"
+                    className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+                    onClick={(e) => e.stopPropagation()}
                   />
-                  <div>
-                    <p className="font-medium text-gray-900">{customer.name}</p>
-                    <p className="text-sm text-gray-500">{customer.address || 'Sin dirección'}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900 truncate">{customer.name}</p>
+                    <p className="text-sm text-gray-500 truncate">{customer.address || 'Sin dirección'}</p>
+                    <div className="flex gap-2 mt-1">
+                      <Badge variant="gray" size="sm">Demanda: {customer.demand}</Badge>
+                      <Badge variant="primary" size="sm">Prioridad: {customer.priority}</Badge>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-right text-sm">
-                    <p className="text-gray-600">Demanda: {customer.demand}</p>
-                    <p className="text-gray-500">Prioridad: {customer.priority}</p>
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleDelete(customer.id)
-                    }}
-                    className="text-red-500 hover:text-red-600"
-                  >
-                    🗑️
-                  </button>
-                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleDelete(customer.id)
+                  }}
+                  className="ml-4 p-2 text-gray-400 hover:text-danger-500 hover:bg-danger-50 rounded-lg transition-colors"
+                  title="Eliminar cliente"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
               </div>
             ))}
             
             {customers.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                No hay clientes registrados. Haz click en el mapa para agregar.
+              <div className="text-center py-12 text-gray-500">
+                <div className="text-4xl mb-4">📍</div>
+                <p className="font-medium">No hay clientes registrados</p>
+                <p className="text-sm mt-1">Haz click en el mapa para agregar un cliente</p>
               </div>
             )}
           </div>
           
           {selectedCustomers.length > 0 && (
-            <div className="mt-4 p-3 bg-primary-50 rounded-lg">
-              <p className="text-sm text-primary-700">
+            <div className="mt-4 p-4 bg-primary-50 border border-primary-200 rounded-lg">
+              <p className="text-sm font-medium text-primary-700">
                 {selectedCustomers.length} cliente(s) seleccionado(s) para optimización
               </p>
             </div>
           )}
-        </div>
+        </Card>
       </div>
       
       {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center" style={{ zIndex: 9999 }}>
-          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl" style={{ zIndex: 10000 }}>
-            <h2 className="text-xl font-bold mb-4">Nuevo Cliente</h2>
-            
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nombre
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Dirección
-                </label>
-                <input
-                  type="text"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Latitud
-                  </label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={formData.lat}
-                    onChange={(e) => setFormData({ ...formData, lat: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Longitud
-                  </label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={formData.lon}
-                    onChange={(e) => setFormData({ ...formData, lon: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
-                    required
-                  />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Demanda
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={formData.demand}
-                    onChange={(e) => setFormData({ ...formData, demand: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Prioridad (1-5)
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="5"
-                    value={formData.priority}
-                    onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
-                  />
-                </div>
-              </div>
-              
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={createCustomer.isPending}
-                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
-                >
-                  {createCustomer.isPending ? 'Guardando...' : 'Guardar'}
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={showModal}
+        onClose={() => {
+          setShowModal(false)
+          setFormErrors({})
+        }}
+        title="Nuevo Cliente"
+        size="md"
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            label="Nombre"
+            value={formData.name}
+            onChange={(e) => {
+              setFormData({ ...formData, name: e.target.value })
+              setFormErrors((prev) => ({ ...prev, name: '' }))
+            }}
+            error={formErrors.name}
+            required
+            placeholder="Ej: Cliente ABC"
+          />
+          
+          <Input
+            label="Dirección"
+            value={formData.address}
+            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+            placeholder="Ej: Calle 123 #45-67"
+          />
+          
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Latitud"
+              type="number"
+              step="any"
+              value={formData.lat}
+              onChange={(e) => {
+                setFormData({ ...formData, lat: e.target.value })
+                setFormErrors((prev) => ({ ...prev, lat: '' }))
+              }}
+              error={formErrors.lat}
+              required
+              helperText="Coordenada del mapa"
+            />
+            <Input
+              label="Longitud"
+              type="number"
+              step="any"
+              value={formData.lon}
+              onChange={(e) => {
+                setFormData({ ...formData, lon: e.target.value })
+                setFormErrors((prev) => ({ ...prev, lon: '' }))
+              }}
+              error={formErrors.lon}
+              required
+              helperText="Coordenada del mapa"
+            />
           </div>
-        </div>
-      )}
+          
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Demanda"
+              type="number"
+              min="1"
+              value={formData.demand}
+              onChange={(e) => {
+                setFormData({ ...formData, demand: e.target.value })
+                setFormErrors((prev) => ({ ...prev, demand: '' }))
+              }}
+              error={formErrors.demand}
+              helperText="Unidades a entregar"
+            />
+            <Input
+              label="Prioridad"
+              type="number"
+              min="1"
+              max="5"
+              value={formData.priority}
+              onChange={(e) => {
+                setFormData({ ...formData, priority: e.target.value })
+                setFormErrors((prev) => ({ ...prev, priority: '' }))
+              }}
+              error={formErrors.priority}
+              helperText="1 (baja) a 5 (alta)"
+            />
+          </div>
+          
+          <div className="flex gap-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowModal(false)
+                setFormErrors({})
+              }}
+              className="flex-1"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              isLoading={createCustomer.isPending}
+              className="flex-1"
+            >
+              Guardar Cliente
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }

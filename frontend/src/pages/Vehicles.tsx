@@ -12,10 +12,12 @@ export default function Vehicles() {
   
   const [showModal, setShowModal] = useState(false)
   const [formData, setFormData] = useState({
-    name: '',
+    plate_number: '',
     capacity: '100',
-    speed_kmh: '30',
-    cost_per_km: '500',
+    vehicle_type: 'van',
+    driver_name: '',
+    driver_phone: '',
+    fuel_efficiency: '',
   })
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,18 +25,19 @@ export default function Vehicles() {
     
     try {
       await createVehicle.mutateAsync({
-        name: formData.name,
+        plate_number: formData.plate_number,
         capacity: parseInt(formData.capacity),
-        speed_kmh: parseFloat(formData.speed_kmh),
-        cost_per_km: parseFloat(formData.cost_per_km),
-        status: 'available',
+        vehicle_type: formData.vehicle_type,
+        driver_name: formData.driver_name || undefined,
+        driver_phone: formData.driver_phone || undefined,
+        fuel_efficiency: formData.fuel_efficiency ? parseFloat(formData.fuel_efficiency) : undefined,
       })
       
       toast.success('Vehículo creado exitosamente')
       setShowModal(false)
-      setFormData({ name: '', capacity: '100', speed_kmh: '30', cost_per_km: '500' })
-    } catch (error) {
-      toast.error('Error al crear vehículo')
+      setFormData({ plate_number: '', capacity: '100', vehicle_type: 'van', driver_name: '', driver_phone: '', fuel_efficiency: '' })
+    } catch (error: any) {
+      toast.error(error?.response?.data?.detail || 'Error al crear vehículo')
     }
   }
   
@@ -182,10 +185,15 @@ export default function Vehicles() {
                   🚗
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">{vehicle.name}</h3>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(vehicle.status)}`}>
-                    {getStatusLabel(vehicle.status)}
-                  </span>
+                  <h3 className="font-semibold text-gray-900">{vehicle.plate_number}</h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(vehicle.status)}`}>
+                      {getStatusLabel(vehicle.status)}
+                    </span>
+                    {vehicle.vehicle_type && (
+                      <span className="text-xs text-gray-500">{vehicle.vehicle_type}</span>
+                    )}
+                  </div>
                 </div>
               </div>
               <button
@@ -193,9 +201,12 @@ export default function Vehicles() {
                   e.stopPropagation()
                   handleDelete(vehicle.id)
                 }}
-                className="text-gray-400 hover:text-red-500"
+                className="text-gray-400 hover:text-red-500 p-2 hover:bg-red-50 rounded-lg transition-colors"
+                title="Eliminar vehículo"
               >
-                🗑️
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
               </button>
             </div>
             
@@ -204,14 +215,18 @@ export default function Vehicles() {
                 <span className="text-gray-500">Capacidad</span>
                 <span className="font-medium">{vehicle.capacity} unidades</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Velocidad</span>
-                <span className="font-medium">{vehicle.speed_kmh || 30} km/h</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Costo/km</span>
-                <span className="font-medium">${vehicle.cost_per_km || 500}</span>
-              </div>
+              {vehicle.driver_name && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Conductor</span>
+                  <span className="font-medium">{vehicle.driver_name}</span>
+                </div>
+              )}
+              {vehicle.fuel_efficiency && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Eficiencia</span>
+                  <span className="font-medium">{vehicle.fuel_efficiency} km/L</span>
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -232,28 +247,14 @@ export default function Vehicles() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nombre / Identificador
+                  Placa del Vehículo *
                 </label>
                 <input
                   type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  value={formData.plate_number}
+                  onChange={(e) => setFormData({ ...formData, plate_number: e.target.value.toUpperCase() })}
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
-                  placeholder="Ej: Vehículo 1, Camioneta A"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Capacidad (unidades)
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={formData.capacity}
-                  onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
+                  placeholder="Ej: ABC123"
                   required
                 />
               </div>
@@ -261,28 +262,74 @@ export default function Vehicles() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Velocidad (km/h)
+                    Capacidad (unidades) *
                   </label>
                   <input
                     type="number"
                     min="1"
-                    value={formData.speed_kmh}
-                    onChange={(e) => setFormData({ ...formData, speed_kmh: e.target.value })}
+                    value={formData.capacity}
+                    onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
+                    required
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Costo por km ($)
+                    Tipo de Vehículo
+                  </label>
+                  <select
+                    value={formData.vehicle_type}
+                    onChange={(e) => setFormData({ ...formData, vehicle_type: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="van">Van</option>
+                    <option value="truck">Camión</option>
+                    <option value="motorcycle">Motocicleta</option>
+                    <option value="car">Carro</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Nombre del Conductor
                   </label>
                   <input
-                    type="number"
-                    min="0"
-                    value={formData.cost_per_km}
-                    onChange={(e) => setFormData({ ...formData, cost_per_km: e.target.value })}
+                    type="text"
+                    value={formData.driver_name}
+                    onChange={(e) => setFormData({ ...formData, driver_name: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
+                    placeholder="Opcional"
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Teléfono del Conductor
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.driver_phone}
+                    onChange={(e) => setFormData({ ...formData, driver_phone: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
+                    placeholder="Opcional"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Eficiencia de Combustible (km/L)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  value={formData.fuel_efficiency}
+                  onChange={(e) => setFormData({ ...formData, fuel_efficiency: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
+                  placeholder="Opcional"
+                />
               </div>
               
               <div className="flex gap-3 pt-4">
@@ -308,3 +355,4 @@ export default function Vehicles() {
     </div>
   )
 }
+

@@ -45,10 +45,24 @@ async def health_check():
         logger.warning(f"GraphHopper no disponible: {e}")
         gh_status = False
     
-    # TODO: Verificar modelo RL
-    model_loaded = False
+    # Verificar modelo RL
+    try:
+        from services.optimization_service import OptimizationService
+        opt_service = OptimizationService()
+        # Intentar cargar modelo si existe
+        model_loaded = await opt_service.load_model()
+    except Exception as e:
+        logger.warning(f"Error verificando modelo RL: {e}")
+        model_loaded = False
     
-    overall_status = "healthy" if all([db_status, redis_status]) else "degraded"
+    # El sistema es healthy si la BD está disponible (crítico)
+    # Redis y GraphHopper son opcionales pero mejoran funcionalidad
+    if not db_status:
+        overall_status = "unhealthy"
+    elif not redis_status and not gh_status:
+        overall_status = "degraded"  # Funcional pero con limitaciones
+    else:
+        overall_status = "healthy"  # BD disponible y al menos un servicio adicional
     
     return HealthResponse(
         status=overall_status,

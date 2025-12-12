@@ -35,27 +35,67 @@ class OptimizationService:
     async def load_model(self, model_name: str = None):
         """Cargar modelo RL entrenado"""
         if model_name is None:
-            model_name = settings.DEFAULT_MODEL_NAME
-        
-        model_file = os.path.join(self.model_path, f"{model_name}.pt")
+            # Buscar modelo activo en BD o usar default
+            try:
+                from database.connection import get_db
+                from sqlalchemy import text
+                async for db in get_db():
+                    query = text("""
+                        SELECT name, file_path, hyperparameters
+                        FROM rl_models
+                        WHERE is_active = true
+                        ORDER BY updated_at DESC
+                        LIMIT 1
+                    """)
+                    result = await db.execute(query)
+                    row = result.fetchone()
+                    if row:
+                        model_name = row.name
+                        model_path_from_db = row.file_path
+                        if model_path_from_db and os.path.exists(model_path_from_db):
+                            model_file = model_path_from_db
+                        else:
+                            model_file = os.path.join(self.model_path, f"{model_name}.pt")
+                    else:
+                        # Usar default
+                        model_name = getattr(settings, 'DEFAULT_MODEL_NAME', 'vrp_dqn_v1')
+                        model_file = os.path.join(self.model_path, f"{model_name}.pt")
+                    break
+            except Exception as e:
+                logger.warning(f"Error buscando modelo activo: {e}")
+                model_name = getattr(settings, 'DEFAULT_MODEL_NAME', 'vrp_dqn_v1')
+                model_file = os.path.join(self.model_path, f"{model_name}.pt")
+        else:
+            model_file = os.path.join(self.model_path, f"{model_name}.pt")
         
         if not os.path.exists(model_file):
             logger.warning(f"Modelo no encontrado: {model_file}")
+            self.model_loaded = False
             return False
         
         try:
-            # Crear agente con dimensiones por defecto
-            # En producción, cargar config del modelo
+            import torch
+            # Cargar checkpoint para obtener config
+            checkpoint = torch.load(model_file, map_location='cpu')
+            config = checkpoint.get('config', {})
+            
+            # Crear agente con config del modelo
             self.agent = DQNAgent(
-                state_dim=104,  # 20 customers * 5 + 4
-                action_dim=21,  # 20 customers + 1 (depot)
+                state_dim=config.get('state_dim', 104),
+                action_dim=config.get('action_dim', 21),
+                learning_rate=config.get('learning_rate', 0.001),
+                gamma=config.get('gamma', 0.99),
+                epsilon_end=config.get('epsilon_end', 0.01),
+                epsilon_decay=config.get('epsilon_decay', 0.995),
+                batch_size=config.get('batch_size', 64),
             )
             self.agent.load(model_file)
             self.model_loaded = True
-            logger.info(f"Modelo cargado: {model_name}")
+            logger.info(f"Modelo cargado exitosamente: {model_name}")
             return True
         except Exception as e:
             logger.error(f"Error cargando modelo: {e}")
+            self.model_loaded = False
             return False
     
     async def optimize_with_rl(

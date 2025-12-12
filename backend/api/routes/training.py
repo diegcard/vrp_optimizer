@@ -82,7 +82,9 @@ async def run_training(service: TrainingService, config: TrainingConfig, db: Asy
     
     try:
         import time
-        training_state["start_time"] = time.time()
+        start_time = time.time()
+        training_state["start_time"] = start_time
+        service.start_time = start_time  # Para calcular tiempo en historial
         
         # Callback para actualizar estado
         def update_callback(episode, reward, epsilon, avg_reward):
@@ -90,19 +92,30 @@ async def run_training(service: TrainingService, config: TrainingConfig, db: Asy
             training_state["current_reward"] = reward
             training_state["epsilon"] = epsilon
             training_state["avg_reward"] = avg_reward
+            training_state["best_reward"] = max(
+                training_state.get("best_reward", reward),
+                reward
+            )
         
         # Ejecutar entrenamiento
         result = await service.train(
-            callback=update_callback
+            callback=update_callback,
+            db_session=db
         )
         
         # Guardar resultado en BD
         await save_training_result(db, config, result)
         
+        # Actualizar estado final
+        training_state["current_episode"] = config.episodes
+        training_state["is_training"] = False
+        
         logger.info(f"Entrenamiento completado: {config.model_name}")
         
     except Exception as e:
-        logger.error(f"Error en entrenamiento: {e}")
+        logger.error(f"Error en entrenamiento: {e}", exc_info=True)
+        training_state["is_training"] = False
+        training_state["error"] = str(e)
     finally:
         training_state["is_training"] = False
 
@@ -158,21 +171,23 @@ async def get_training_status():
     
     elapsed = 0
     estimated_remaining = None
+    best_reward = training_state.get("best_reward", training_state.get("current_reward"))
     
-    if training_state["start_time"]:
+    if training_state.get("start_time"):
         elapsed = time.time() - training_state["start_time"]
-        if training_state["current_episode"] > 0:
+        if training_state["current_episode"] > 0 and training_state["total_episodes"] > 0:
             avg_time_per_episode = elapsed / training_state["current_episode"]
             remaining_episodes = training_state["total_episodes"] - training_state["current_episode"]
-            estimated_remaining = avg_time_per_episode * remaining_episodes
+            estimated_remaining = max(0, avg_time_per_episode * remaining_episodes)
     
     return TrainingStatus(
         is_training=training_state["is_training"],
         current_episode=training_state["current_episode"],
         total_episodes=training_state["total_episodes"],
-        current_reward=training_state["current_reward"],
-        avg_reward_last_100=training_state["avg_reward"],
-        epsilon=training_state["epsilon"],
+        current_reward=training_state.get("current_reward"),
+        best_reward=best_reward,
+        avg_reward_last_100=training_state.get("avg_reward"),
+        epsilon=training_state.get("epsilon", 1.0),
         elapsed_time_seconds=elapsed,
         estimated_remaining_seconds=estimated_remaining
     )

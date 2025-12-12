@@ -3,6 +3,9 @@ import { useCustomers, useVehicles, useDepots, useOptimizeRoutes } from '../hook
 import { useAppStore } from '../store/appStore'
 import MapView from '../components/MapView'
 import toast from 'react-hot-toast'
+import Card from '../components/ui/Card'
+import Button from '../components/ui/Button'
+import Badge from '../components/ui/Badge'
 
 type OptimizationMethod = 'rl' | 'greedy' | 'ortools'
 
@@ -69,14 +72,14 @@ export default function Optimization() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Optimización de Rutas</h1>
-          <p className="text-gray-500">VRP con Reinforcement Learning</p>
+          <h1 className="text-3xl font-bold text-gray-900">Optimización de Rutas</h1>
+          <p className="text-gray-500 mt-1">VRP con Reinforcement Learning</p>
         </div>
         {!depot && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg flex items-center gap-2">
+          <Badge variant="danger" className="flex items-center gap-2">
             <span>⚠️</span>
             <span>No hay depósito configurado</span>
-          </div>
+          </Badge>
         )}
       </div>
       
@@ -84,8 +87,8 @@ export default function Optimization() {
         {/* Config Panel */}
         <div className="space-y-6">
           {/* Method Selection */}
-          <div className="bg-white rounded-xl shadow-sm p-4">
-            <h2 className="text-lg font-semibold mb-4">Método de Optimización</h2>
+          <Card>
+            <h2 className="text-lg font-semibold mb-4 text-gray-900">Método de Optimización</h2>
             
             <div className="space-y-3">
               <label
@@ -160,11 +163,11 @@ export default function Optimization() {
                 </div>
               </label>
             </div>
-          </div>
+          </Card>
           
           {/* Selection Summary */}
-          <div className="bg-white rounded-xl shadow-sm p-4">
-            <h2 className="text-lg font-semibold mb-4">Selección</h2>
+          <Card>
+            <h2 className="text-lg font-semibold mb-4 text-gray-900">Selección</h2>
             
             <div className="space-y-4">
               <div>
@@ -210,28 +213,21 @@ export default function Optimization() {
               </div>
             </div>
             
-            <button
+            <Button
               onClick={handleOptimize}
-              disabled={optimizeRoutes.isPending || selectedCustomers.length === 0 || selectedVehicles.length === 0}
-              className="w-full mt-4 px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              disabled={optimizeRoutes.isPending || selectedCustomers.length === 0 || selectedVehicles.length === 0 || !depot}
+              isLoading={optimizeRoutes.isPending}
+              className="w-full mt-4"
+              size="lg"
             >
-              {optimizeRoutes.isPending ? (
-                <>
-                  <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
-                  Optimizando...
-                </>
-              ) : (
-                <>
-                  🚀 Optimizar Rutas
-                </>
-              )}
-            </button>
-          </div>
+              🚀 Optimizar Rutas
+            </Button>
+          </Card>
           
           {/* Results */}
           {result && (
-            <div className="bg-white rounded-xl shadow-sm p-4">
-              <h2 className="text-lg font-semibold mb-4">Resultados</h2>
+            <Card>
+              <h2 className="text-lg font-semibold mb-4 text-gray-900">Resultados</h2>
               
               <div className="space-y-3">
                 <div className="flex justify-between items-center p-2 bg-green-50 rounded-lg">
@@ -258,14 +254,21 @@ export default function Optimization() {
                   Método: {result.method_used.toUpperCase()}
                 </div>
               </div>
-            </div>
+            </Card>
           )}
         </div>
         
         {/* Map */}
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm p-4">
-          <h2 className="text-lg font-semibold mb-4">Vista de Rutas</h2>
-          <div className="h-[600px]">
+        <Card className="lg:col-span-2">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Vista de Rutas</h2>
+            {result && (
+              <Badge variant="success">
+                {result.metrics.vehicles_used} vehículo(s) usado(s)
+              </Badge>
+            )}
+          </div>
+          <div className="h-[600px] rounded-lg overflow-hidden">
             <MapView
               customers={displayCustomers.length > 0 ? displayCustomers.map(c => ({
                 ...c,
@@ -281,24 +284,27 @@ export default function Optimization() {
           
           {/* Route Legend */}
           {routes.length > 0 && (
-            <div className="mt-4 flex flex-wrap gap-4">
-              {routes.map((route, index) => {
-                const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
-                return (
-                  <div key={route.vehicle_id} className="flex items-center gap-2">
-                    <div 
-                      className="w-4 h-1 rounded"
-                      style={{ backgroundColor: colors[index % colors.length] }}
-                    ></div>
-                    <span className="text-sm text-gray-600">
-                      Ruta {index + 1}: {route.total_distance_km.toFixed(1)}km, {route.points.length} paradas
-                    </span>
-                  </div>
-                )
-              })}
+            <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Leyenda de Rutas</h3>
+              <div className="flex flex-wrap gap-4">
+                {routes.map((route, index) => {
+                  const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
+                  return (
+                    <div key={route.vehicle_id} className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-gray-200">
+                      <div 
+                        className="w-4 h-1 rounded-full"
+                        style={{ backgroundColor: colors[index % colors.length] }}
+                      ></div>
+                      <span className="text-sm font-medium text-gray-700">
+                        Ruta {index + 1}: <span className="text-primary-600">{route.total_distance_km.toFixed(1)} km</span>, {route.points.length} paradas
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           )}
-        </div>
+        </Card>
       </div>
     </div>
   )

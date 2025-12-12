@@ -1,8 +1,11 @@
-import { useEffect, useCallback, useRef } from 'react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
+import { useEffect, useRef } from 'react'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from 'recharts'
 import { useSystemMetrics, useCustomers, useVehicles, useRoutes, useHealth } from '../hooks/useApi'
 import MapView from '../components/MapView'
 import { useAppStore } from '../store/appStore'
+import Card from '../components/ui/Card'
+import LoadingSpinner from '../components/ui/LoadingSpinner'
+import Badge from '../components/ui/Badge'
 
 export default function Dashboard() {
   const { data: health, isLoading: healthLoading } = useHealth()
@@ -45,25 +48,29 @@ export default function Dashboard() {
       label: 'Clientes', 
       value: customers.length, 
       icon: '📍', 
-      color: 'bg-blue-500' 
+      color: 'bg-primary-500',
+      bgColor: 'bg-primary-100'
     },
     { 
       label: 'Vehículos', 
       value: vehicles.length, 
       icon: '🚗', 
-      color: 'bg-green-500' 
+      color: 'bg-success-500',
+      bgColor: 'bg-success-100'
     },
     { 
       label: 'Rutas Activas', 
       value: routes.length, 
       icon: '🛤️', 
-      color: 'bg-yellow-500' 
+      color: 'bg-warning-500',
+      bgColor: 'bg-warning-100'
     },
     { 
       label: 'Entregas Hoy', 
       value: metrics?.total_deliveries_today || 0, 
       icon: '📦', 
-      color: 'bg-purple-500' 
+      color: 'bg-purple-500',
+      bgColor: 'bg-purple-100'
     },
   ]
   
@@ -90,7 +97,7 @@ export default function Dashboard() {
   if (healthLoading || customersLoading || vehiclesLoading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        <LoadingSpinner size="lg" />
       </div>
     )
   }
@@ -100,41 +107,44 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-500">Sistema de Optimización de Rutas VRP</p>
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-500 mt-1">Sistema de Optimización de Rutas VRP</p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className={`w-3 h-3 rounded-full ${health?.status === 'healthy' ? 'bg-green-500' : 'bg-red-500'}`}></span>
-          <span className="text-sm text-gray-600">
-            {health?.status === 'healthy' ? 'Sistema operativo' : 'Sistema con problemas'}
-          </span>
+        <div className="flex items-center gap-3">
+          <Badge variant={health?.status === 'healthy' ? 'success' : 'danger'}>
+            {health?.status === 'healthy' ? '✓ Operativo' : '✗ Con problemas'}
+          </Badge>
         </div>
       </div>
       
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => (
-          <div 
-            key={stat.label}
-            className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4"
-          >
-            <div className={`${stat.color} w-12 h-12 rounded-lg flex items-center justify-center text-2xl`}>
-              {stat.icon}
+          <Card key={stat.label} hover>
+            <div className="flex items-center gap-4">
+              <div className={`${stat.bgColor} w-14 h-14 rounded-xl flex items-center justify-center text-2xl shadow-sm`}>
+                {stat.icon}
+              </div>
+              <div>
+                <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
+                <p className="text-sm text-gray-500 font-medium">{stat.label}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-              <p className="text-sm text-gray-500">{stat.label}</p>
-            </div>
-          </div>
+          </Card>
         ))}
       </div>
       
       {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Map */}
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm p-4">
-          <h2 className="text-lg font-semibold mb-4">Mapa de Rutas - Bogotá</h2>
-          <div className="h-96">
+        <Card className="lg:col-span-2">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Mapa de Rutas - Bogotá</h2>
+            {routes.length > 0 && (
+              <Badge variant="primary">{routes.length} ruta(s) activa(s)</Badge>
+            )}
+          </div>
+          <div className="h-96 rounded-lg overflow-hidden">
             <MapView
               customers={customers.map(c => ({
                 ...c,
@@ -146,82 +156,138 @@ export default function Dashboard() {
               zoom={mapZoom}
             />
           </div>
-        </div>
+        </Card>
         
         {/* System Status */}
-        <div className="bg-white rounded-xl shadow-sm p-4">
-          <h2 className="text-lg font-semibold mb-4">Estado del Sistema</h2>
+        <Card>
+          <h2 className="text-lg font-semibold mb-4 text-gray-900">Estado del Sistema</h2>
           <div className="space-y-4">
-            <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-              <span className="text-gray-600">Latencia API</span>
-              <span className="font-semibold">{metrics?.api_latency_ms || 0} ms</span>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-              <span className="text-gray-600">CPU</span>
-              <div className="flex items-center gap-2">
-                <div className="w-24 h-2 bg-gray-200 rounded-full">
-                  <div 
-                    className="h-2 bg-primary-500 rounded-full" 
-                    style={{ width: `${metrics?.cpu_usage || 0}%` }}
-                  ></div>
-                </div>
-                <span className="font-semibold">{metrics?.cpu_usage || 0}%</span>
+            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium text-gray-600">Latencia API</span>
+                <span className="text-lg font-bold text-gray-900">{metrics?.api_latency_ms || 0} ms</span>
+              </div>
+              <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full rounded-full transition-all ${
+                    (metrics?.api_latency_ms || 0) < 100 ? 'bg-success-500' :
+                    (metrics?.api_latency_ms || 0) < 300 ? 'bg-warning-500' : 'bg-danger-500'
+                  }`}
+                  style={{ width: `${Math.min((metrics?.api_latency_ms || 0) / 5, 100)}%` }}
+                ></div>
               </div>
             </div>
-            <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-              <span className="text-gray-600">Memoria</span>
-              <div className="flex items-center gap-2">
-                <div className="w-24 h-2 bg-gray-200 rounded-full">
-                  <div 
-                    className="h-2 bg-green-500 rounded-full" 
-                    style={{ width: `${metrics?.memory_usage || 0}%` }}
-                  ></div>
-                </div>
-                <span className="font-semibold">{metrics?.memory_usage || 0}%</span>
+            
+            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium text-gray-600">CPU</span>
+                <span className="text-lg font-bold text-gray-900">{metrics?.cpu_usage || 0}%</span>
+              </div>
+              <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full rounded-full transition-all ${
+                    (metrics?.cpu_usage || 0) < 50 ? 'bg-success-500' :
+                    (metrics?.cpu_usage || 0) < 80 ? 'bg-warning-500' : 'bg-danger-500'
+                  }`}
+                  style={{ width: `${metrics?.cpu_usage || 0}%` }}
+                ></div>
               </div>
             </div>
-            <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-              <span className="text-gray-600">Distancia Total Hoy</span>
-              <span className="font-semibold">{metrics?.total_distance_today || 0} km</span>
+            
+            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium text-gray-600">Memoria</span>
+                <span className="text-lg font-bold text-gray-900">{metrics?.memory_usage || 0}%</span>
+              </div>
+              <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full rounded-full transition-all ${
+                    (metrics?.memory_usage || 0) < 70 ? 'bg-success-500' :
+                    (metrics?.memory_usage || 0) < 90 ? 'bg-warning-500' : 'bg-danger-500'
+                  }`}
+                  style={{ width: `${metrics?.memory_usage || 0}%` }}
+                ></div>
+              </div>
+            </div>
+            
+            <div className="p-4 bg-primary-50 rounded-lg border border-primary-200">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-primary-700">Distancia Total Hoy</span>
+                <span className="text-xl font-bold text-primary-900">{metrics?.total_distance_today || 0} km</span>
+              </div>
             </div>
           </div>
-        </div>
+        </Card>
       </div>
       
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Performance Chart */}
-        <div className="bg-white rounded-xl shadow-sm p-4">
-          <h2 className="text-lg font-semibold mb-4">Rendimiento del Sistema</h2>
+        <Card>
+          <h2 className="text-lg font-semibold mb-4 text-gray-900">Rendimiento del Sistema</h2>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={performanceData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="latencia" stroke="#3b82f6" name="Latencia (ms)" />
-                <Line type="monotone" dataKey="optimizaciones" stroke="#10b981" name="Optimizaciones" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="name" stroke="#6b7280" />
+                <YAxis stroke="#6b7280" />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'white', 
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                  }}
+                />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="latencia" 
+                  stroke="#3b82f6" 
+                  strokeWidth={2}
+                  name="Latencia (ms)"
+                  dot={false}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="optimizaciones" 
+                  stroke="#10b981" 
+                  strokeWidth={2}
+                  name="Optimizaciones"
+                  dot={false}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </Card>
         
         {/* Route Stats Chart */}
-        <div className="bg-white rounded-xl shadow-sm p-4">
-          <h2 className="text-lg font-semibold mb-4">Distancia por Día (km)</h2>
+        <Card>
+          <h2 className="text-lg font-semibold mb-4 text-gray-900">Distancia por Día (km)</h2>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={routeStats}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="distancia" fill="#8b5cf6" name="Distancia (km)" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="name" stroke="#6b7280" />
+                <YAxis stroke="#6b7280" />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'white', 
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                  }}
+                />
+                <Bar 
+                  dataKey="distancia" 
+                  fill="#8b5cf6" 
+                  name="Distancia (km)"
+                  radius={[8, 8, 0, 0]}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   )

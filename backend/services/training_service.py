@@ -34,10 +34,13 @@ class TrainingService:
         self.env: Optional[VRPEnvironment] = None
         self.is_training = False
         self.should_stop = False
+        self.start_time = None
+        self.db_session = None  # Para guardar historial
     
     async def train(
         self,
-        callback: Optional[Callable] = None
+        callback: Optional[Callable] = None,
+        db_session = None
     ) -> Dict[str, Any]:
         """
         Ejecutar entrenamiento del agente.
@@ -50,7 +53,8 @@ class TrainingService:
         """
         self.is_training = True
         self.should_stop = False
-        start_time = time.time()
+        self.start_time = time.time()
+        self.db_session = db_session
         
         # Crear entorno
         self.env = VRPEnvironment(
@@ -107,6 +111,19 @@ class TrainingService:
                     avg_reward
                 )
             
+            # Guardar historial en BD cada 10 episodios (para no saturar BD)
+            if (episode + 1) % 10 == 0 and self.db_session:
+                try:
+                    await self._save_training_history(
+                        episode + 1,
+                        episode_reward,
+                        avg_reward,
+                        self.agent.epsilon,
+                        self.agent.get_metrics().get('avg_loss_last_100', 0)
+                    )
+                except Exception as e:
+                    logger.warning(f"Error guardando historial: {e}")
+            
             # Log cada 100 episodios
             if (episode + 1) % 100 == 0:
                 metrics = self.agent.get_metrics()
@@ -126,6 +143,7 @@ class TrainingService:
                 )
                 os.makedirs(os.path.dirname(checkpoint_path), exist_ok=True)
                 self.agent.save(checkpoint_path)
+                logger.info(f"Checkpoint guardado: {checkpoint_path}")
         
         # Guardar modelo final
         final_path = os.path.join(
@@ -135,7 +153,7 @@ class TrainingService:
         os.makedirs(os.path.dirname(final_path), exist_ok=True)
         self.agent.save(final_path)
         
-        training_time = time.time() - start_time
+        training_time = time.time() - self.start_time
         self.is_training = False
         
         logger.info(f"Entrenamiento completado en {training_time:.1f}s")
@@ -187,6 +205,50 @@ class TrainingService:
     def stop(self):
         """Detener el entrenamiento"""
         self.should_stop = True
+    
+    async def _save_training_history(
+        self,
+        episode: int,
+        reward: float,
+        avg_reward: float,
+        epsilon: float,
+        loss: float
+    ):
+        """Guardar historial de entrenamiento en BD"""
+        if not self.db_session:
+            return
+            
+        try:
+            from sqlalchemy import text
+            import time
+            
+            query = text("""
+                INSERT INTO rl_training_history (
+                    model_name, episode, total_reward, avg_distance,
+                    epsilon, loss, training_time_seconds, hyperparameters
+                ) VALUES (
+                    :model_name, :episode, :reward, :avg_distance,
+                    :epsilon, :loss, :time, :hyperparams
+                )
+            """)
+            
+            elapsed = time.time() - self.start_time if self.start_time else 0
+            
+            await self.db_session.execute(query, {
+                "model_name": self.config.model_name,
+                "episode": episode,
+                "reward": reward,
+                "avg_distance": -avg_reward if avg_reward < 0 else abs(avg_reward),  # Convertir reward a distancia aproximada
+                "epsilon": epsilon,
+                "loss": loss,
+                "time": elapsed,
+                "hyperparams": self.config.dict()
+            })
+            await self.db_session.commit()
+        except Exception as e:
+            logger.warning(f"Error guardando historial de entrenamiento: {e}")
+            if self.db_session:
+                await self.db_session.rollback()
     
     async def evaluate(
         self,
