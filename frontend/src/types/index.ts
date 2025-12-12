@@ -105,6 +105,7 @@ export interface TrainingStatus {
 export interface TrainingHistory {
   episode: number
   reward: number
+  total_reward?: number
   epsilon: number
   loss: number
   steps: number
@@ -116,6 +117,7 @@ export interface ModelInfo {
   name: string
   created_at: string
   num_episodes: number
+  trained_episodes?: number
   final_reward: number
   file_path: string
   config: TrainingConfig

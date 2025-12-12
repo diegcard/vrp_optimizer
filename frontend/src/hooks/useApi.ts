@@ -171,7 +171,7 @@ export const useTrainingStatus = (enabled: boolean = true) => {
   return useQuery({
     queryKey: queryKeys.trainingStatus,
     queryFn: api.getTrainingStatus,
-    refetchInterval: (data) => (data?.status === 'running' ? 2000 : false),
+    refetchInterval: (query) => (query.state.data?.is_training ? 2000 : false),
     enabled,
   })
 }

@@ -1,3 +1,8 @@
+# ===========================================
+# VRP Optimizer - Docker Compose para DESARROLLO
+# Para producción usar: docker-compose.prod.yml
+# ===========================================
+
 version: '3.8'
 
 services:

@@ -2,8 +2,17 @@ graphhopper:
   datareader.file: /data/colombia-latest.osm.pbf
   graph.location: /data/graph-cache
   import.osm.ignored_highways: ""
+  graph.flag_encoders: car
+  
   profiles:
     - name: car
+      vehicle: car
+      weighting: custom
+      custom_model:
+        priority:
+          - if: "road_access == DESTINATION"
+            multiply_by: "0.1"
+
   profiles_ch:
     - profile: car
 

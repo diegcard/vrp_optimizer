@@ -19,7 +19,7 @@
 |---|---|
 | **Universidad** | Escuela Colombiana de Ingeniería Julio Garavito |
 | **Materia** | Arquitectura Empresarial (AREP) |
-| **Período** | 2024-2 |
+| **Período** | 2025-2 |
 | **Docente** | Luis Daniel Benavides |
 
 ### 👥 Integrantes

@@ -3,7 +3,6 @@ import { useCustomers, useCreateCustomer, useDeleteCustomer } from '../hooks/use
 import { useAppStore } from '../store/appStore'
 import MapView from '../components/MapView'
 import toast from 'react-hot-toast'
-import type { Customer } from '../types'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Modal from '../components/ui/Modal'

@@ -6,9 +6,7 @@ import type { TrainingConfig } from '../types'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Modal from '../components/ui/Modal'
-import Input from '../components/ui/Input'
 import Badge from '../components/ui/Badge'
-import LoadingSpinner from '../components/ui/LoadingSpinner'
 
 const defaultConfig: TrainingConfig = {
   num_episodes: 1000,

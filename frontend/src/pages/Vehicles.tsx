@@ -28,6 +28,7 @@ export default function Vehicles() {
         plate_number: formData.plate_number,
         capacity: parseInt(formData.capacity),
         vehicle_type: formData.vehicle_type,
+        status: 'available' as const,
         driver_name: formData.driver_name || undefined,
         driver_phone: formData.driver_phone || undefined,
         fuel_efficiency: formData.fuel_efficiency ? parseFloat(formData.fuel_efficiency) : undefined,

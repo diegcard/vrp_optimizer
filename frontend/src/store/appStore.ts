@@ -50,7 +50,7 @@ interface AppState {
 export const useAppStore = create<AppState>()(
   devtools(
     persist(
-      (set, get) => ({
+      (set) => ({
         // Customers
         customers: [],
         selectedCustomers: [],

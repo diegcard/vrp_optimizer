@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import type { Customer, Route, Coordinates } from '../types'
 
@@ -51,6 +51,18 @@ function MapController({ center, zoom }: { center?: [number, number]; zoom?: num
   return null
 }
 
+// Component to handle map click events
+function MapClickHandler({ onMapClick }: { onMapClick?: (latlng: { lat: number; lng: number }) => void }) {
+  useMapEvents({
+    click: (e) => {
+      if (onMapClick) {
+        onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng })
+      }
+    },
+  })
+  return null
+}
+
 export default function MapView({
   customers,
   depot,
@@ -68,7 +80,6 @@ export default function MapView({
       zoom={zoom}
       ref={mapRef}
       className="h-full w-full rounded-lg shadow-lg"
-      onClick={(e: any) => onMapClick?.(e.latlng)}
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -76,6 +87,7 @@ export default function MapView({
       />
       
       <MapController center={center} zoom={zoom} />
+      <MapClickHandler onMapClick={onMapClick} />
       
       {/* Depot marker */}
       {depot && (
